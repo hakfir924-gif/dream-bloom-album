@@ -1,6 +1,6 @@
 "use client";
 
-import { Billboard, OrbitControls, PerspectiveCamera, Stars, Text, useTexture, useVideoTexture } from "@react-three/drei";
+import { Billboard, OrbitControls, PerspectiveCamera, Stars, Text, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -422,9 +422,9 @@ function SmallPlanets({ items, hidden, onSelectSmallPlanet }: { items: SmallMemo
     () =>
       items.map((_, index) => {
         const angle = index * 2.399;
-        const radius = 2.15 + (index % 7) * 0.46;
+        const radius = 2.8 + (index % 7) * 0.55;
         return {
-          position: [Math.cos(angle) * radius, ((index * 31) % 100) / 100 * 3.4 - 1.7, Math.sin(angle) * radius * 0.48 - 0.8] as [number, number, number],
+          position: [Math.cos(angle) * radius, ((index * 31) % 100) / 100 * 4.2 - 2.1, Math.sin(angle) * radius * 0.52 - 0.8] as [number, number, number],
           size: 0.13 + (index % 4) * 0.018,
           phase: angle,
         };
@@ -466,6 +466,11 @@ function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { 
   };
   return (
     <group ref={group} position={placement.position} scale={hidden ? 0.4 : 1}>
+      {/* Orbital ring */}
+      <mesh rotation={[0.4 + index * 0.15, index * 0.6, 0.2]}>
+        <torusGeometry args={[placement.size * 1.6, 0.004, 6, 48]} />
+        <meshBasicMaterial color={index % 3 === 0 ? "#ff8bd8" : index % 3 === 1 ? "#8ee7ff" : "#ffd18f"} transparent opacity={hidden ? 0.01 : 0.18} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
       {/* Outer pulse glow */}
       <mesh ref={glowRef} scale={2.4}>
         <sphereGeometry args={[placement.size * 0.8, 12, 8]} />
@@ -485,120 +490,7 @@ function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { 
           <meshBasicMaterial map={texture} transparent opacity={hidden ? 0.05 : 0.8} depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       </Billboard>
-      {/* Tiny trailing glow dot */}
-      <mesh position={[0, -placement.size * 0.3, 0]}>
-        <sphereGeometry args={[placement.size * 0.15, 8, 6]} />
-        <meshBasicMaterial color={index % 3 === 0 ? "#ff8bd8" : index % 3 === 1 ? "#8ee7ff" : "#ffd18f"} transparent opacity={hidden ? 0.01 : 0.25} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
     </group>
-  );
-}
-
-function FloatingMemoryCloud({ memory, compact, onPreview }: { memory: BigMemoryPlanet | SmallMemoryPlanet; compact: boolean; onPreview: (media: UniverseMedia) => void }) {
-  const group = useRef<THREE.Group>(null);
-  const items = useMemo(() => memory.items.slice(0, compact ? 14 : 24), [compact, memory.items]);
-
-  useFrame((_, delta) => {
-    if (!group.current) return;
-    group.current.rotation.y += delta * 0.025;
-  });
-
-  return (
-    <group ref={group} position={[0, 0, -1.18]}>
-      {items.map((item, index) => (
-        <MemoryPlane key={item.id} media={item} index={index} total={items.length} onPreview={onPreview} />
-      ))}
-    </group>
-  );
-}
-
-function MemoryPlane({ media, index, total, onPreview }: { media: UniverseMedia; index: number; total: number; onPreview: (media: UniverseMedia) => void }) {
-  const mesh = useRef<THREE.Mesh>(null);
-  const columns = 6;
-  const col = index % columns;
-  const row = Math.floor(index / columns);
-  const colOffset = col - (columns - 1) / 2;
-  const rowOffset = row - Math.floor((Math.ceil(total / columns) - 1) / 2);
-  const curve = Math.sin((col / (columns - 1)) * Math.PI) * 0.42;
-  const position: [number, number, number] = [
-    colOffset * 0.58,
-    -rowOffset * 0.62,
-    curve + row * 0.08,
-  ];
-
-  useFrame((state) => {
-    if (!mesh.current) return;
-    mesh.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8 + index) * 0.035;
-    mesh.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.32 + index) * 0.045;
-  });
-
-  if (media.type === "video") return <VideoMemoryPlane media={media} index={index} position={position} onPreview={onPreview} />;
-  return <ImageMemoryPlane media={media} index={index} position={position} meshRef={mesh} onPreview={onPreview} total={total} />;
-}
-
-function ImageMemoryPlane({ media, index, position, meshRef, onPreview }: { media: UniverseMedia; index: number; position: [number, number, number]; meshRef: React.RefObject<THREE.Mesh | null>; onPreview: (media: UniverseMedia) => void; total: number }) {
-  const texture = useTexture(media.thumb ?? media.url);
-  const group = useRef<THREE.Group>(null);
-  const { camera } = useThree();
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 2;
-    texture.needsUpdate = true;
-  }, [texture]);
-  useFrame((state) => {
-    if (!group.current) return;
-    group.current.quaternion.slerp(camera.quaternion, 0.18);
-    group.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.8 + index) * 0.035;
-  });
-  return (
-    <Billboard ref={group} position={position} follow>
-      <mesh scale={[1.08, 1.08, 1]} position={[0, 0, -0.015]}>
-        <planeGeometry args={[0.5, 0.66]} />
-        <meshBasicMaterial color="#ffbde9" transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh
-        ref={meshRef}
-        onClick={(event) => {
-          event.stopPropagation();
-          onPreview(media);
-        }}
-      >
-        <planeGeometry args={[0.44, 0.58]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.98} side={THREE.DoubleSide} />
-      </mesh>
-    </Billboard>
-  );
-}
-
-function VideoMemoryPlane({ media, index, position, onPreview }: { media: UniverseMedia; index: number; position: [number, number, number]; onPreview: (media: UniverseMedia) => void }) {
-  const mesh = useRef<THREE.Mesh>(null);
-  const group = useRef<THREE.Group>(null);
-  const { camera } = useThree();
-  const texture = useVideoTexture(media.url, { muted: true, loop: true, start: index < 10 });
-  useFrame((state) => {
-    if (mesh.current) mesh.current.position.y = Math.sin(state.clock.elapsedTime * 0.8 + index) * 0.035;
-    if (group.current) group.current.quaternion.slerp(camera.quaternion, 0.18);
-  });
-  return (
-    <Billboard ref={group} position={position} follow>
-      <mesh scale={[1.08, 1.08, 1]} position={[0, 0, -0.015]}>
-        <planeGeometry args={[0.52, 0.66]} />
-        <meshBasicMaterial color="#8ee7ff" transparent opacity={0.15} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-      <mesh
-        ref={mesh}
-        onClick={(event) => {
-          event.stopPropagation();
-          onPreview(media);
-        }}
-      >
-        <planeGeometry args={[0.46, 0.58]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.94} side={THREE.DoubleSide} />
-      </mesh>
-      <Text position={[0, 0, 0.035]} fontSize={0.09} anchorX="center" anchorY="middle" color="#ffffff" outlineWidth={0.004} outlineColor="#1c0f20">
-        ▶
-      </Text>
-    </Billboard>
   );
 }
 
