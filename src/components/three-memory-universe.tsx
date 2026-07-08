@@ -201,18 +201,38 @@ function SceneContent({
 
 function CenterMark() {
   const group = useRef<THREE.Group>(null);
+  const textRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
   useFrame((state) => {
     if (!group.current) return;
-    group.current.rotation.y = state.clock.elapsedTime * 0.06;
+    group.current.rotation.y = state.clock.elapsedTime * 0.04;
+    // Gentle float up/down
+    group.current.position.y = -0.08 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+    // Text glow pulse
+    if (glowRef.current) {
+      const mat = glowRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = 0.06 + Math.sin(state.clock.elapsedTime * 0.8) * 0.03;
+    }
   });
   return (
     <group ref={group} position={[0, -0.08, -0.3]}>
-      <mesh scale={[3.2, 0.42, 1.25]}>
+      {/* Soft elliptical glow backdrop */}
+      <mesh ref={glowRef} scale={[3.2, 0.42, 1.25]}>
         <sphereGeometry args={[1, 32, 14]} />
         <meshBasicMaterial color="#e8c7ff" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <Text position={[0, -0.48, 0.12]} fontSize={0.15} anchorX="center" anchorY="middle" color="#ffe9f8" outlineWidth={0.006} outlineColor="#ff8bd8">
-        ❤ 鑫鑫
+      {/* Inner glow ring */}
+      <mesh rotation={[0, 0, 0]}>
+        <ringGeometry args={[0.65, 0.68, 64]} />
+        <meshBasicMaterial color="#ff8bd8" transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh rotation={[0.15, 0, 0]}>
+        <ringGeometry args={[0.72, 0.74, 64]} />
+        <meshBasicMaterial color="#8ee7ff" transparent opacity={0.04} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Brand text */}
+      <Text ref={textRef} position={[0, -0.48, 0.12]} fontSize={0.14} anchorX="center" anchorY="middle" color="#ffe9f8" outlineWidth={0.004} outlineColor="#c06eba" fillOpacity={0.85}>
+        {"\u2764 \u946b\u946b"}
       </Text>
     </group>
   );

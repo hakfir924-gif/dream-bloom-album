@@ -136,14 +136,42 @@ function IntroHero({ onStart }: { onStart: () => void }) {
       >
         {COPY.heart}
       </motion.div>
-      <motion.h1
-        className="text-5xl font-semibold tracking-[0.16em] text-white drop-shadow-[0_0_36px_rgba(255,151,224,0.65)] sm:text-7xl"
-        initial={{ y: 18, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1, duration: 0.8 }}
-      >
-        {COPY.brand}
-      </motion.h1>
+      <div className="relative">
+        {/* Glow behind title */}
+        <motion.div
+          className="absolute inset-0 -z-10 blur-2xl"
+          animate={{ opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <span className="bg-gradient-to-r from-pink-500/30 via-purple-400/40 to-cyan-400/30 bg-clip-text text-5xl font-semibold tracking-[0.16em] text-transparent sm:text-7xl">
+            {COPY.brand}
+          </span>
+        </motion.div>
+        {/* Main title with gradient */}
+        <motion.h1
+          className="bg-gradient-to-b from-white via-pink-100 to-purple-200 bg-clip-text text-5xl font-semibold tracking-[0.16em] text-transparent drop-shadow-[0_0_36px_rgba(255,151,224,0.35)] sm:text-7xl"
+          initial={{ y: 18, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.8 }}
+        >
+          {COPY.brand}
+        </motion.h1>
+        {/* Sparkle decorations */}
+        <motion.span
+          className="pointer-events-none absolute -right-6 -top-2 text-pink-300/60 sm:-right-8 sm:-top-3"
+          animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.8, 0.3] }}
+          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        >
+          <Sparkles size={16} />
+        </motion.span>
+        <motion.span
+          className="pointer-events-none absolute -left-5 bottom-0 text-cyan-300/40 sm:-left-7"
+          animate={{ scale: [1, 0.7, 1], opacity: [0.5, 0.2, 0.5] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        >
+          <Sparkles size={12} />
+        </motion.span>
+      </div>
       <motion.p
         className="mt-4 text-xs font-medium uppercase tracking-[0.32em] text-pink-50/76 sm:text-sm"
         initial={{ y: 16, opacity: 0 }}
@@ -201,6 +229,33 @@ function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemory
       exit={{ opacity: 0, transition: { duration: 0.35 } }}
       onClick={onClose}
     >
+      {/* Orbit ring decoration */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 flex items-center justify-center"
+        initial={{ opacity: 0, scale: 0.6 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+      >
+        <svg className="absolute h-[120%] w-[120%] max-w-[600px] max-h-[600px]" viewBox="0 0 400 400" fill="none">
+          <ellipse cx="200" cy="200" rx="180" ry="60" stroke="url(#orbitGrad)" strokeWidth="0.5" strokeDasharray="6 8" opacity="0.3" transform="rotate(-15 200 200)" />
+          <ellipse cx="200" cy="200" rx="160" ry="50" stroke="url(#orbitGrad)" strokeWidth="0.3" strokeDasharray="4 12" opacity="0.15" transform="rotate(25 200 200)" />
+          <circle cx="200" cy="200" r="140" stroke="url(#orbitGrad2)" strokeWidth="0.4" strokeDasharray="3 6" opacity="0.12" />
+          <defs>
+            <linearGradient id="orbitGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ff8bd8" stopOpacity="0.6" />
+              <stop offset="50%" stopColor="#8ee7ff" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#ffd18f" stopOpacity="0.6" />
+            </linearGradient>
+            <linearGradient id="orbitGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ff8bd8" stopOpacity="0" />
+              <stop offset="50%" stopColor="#c084fc" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#ff8bd8" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </motion.div>
+
       <motion.div
         className="glass-panel relative flex max-h-[88svh] w-full max-w-xl flex-col overflow-hidden rounded-[24px]"
         initial={{ scale: 0.88, y: 32, opacity: 0 }}
@@ -209,11 +264,17 @@ function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemory
         transition={{ type: "spring", damping: 28, stiffness: 320 }}
         onClick={(event) => event.stopPropagation()}
       >
+        {/* Top accent line */}
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-pink-400/40 to-transparent" />
+
         {/* Header */}
         <div className="flex items-start justify-between px-5 pt-5 pb-2 sm:px-6 sm:pt-6">
           <div className="min-w-0 flex-1">
-            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-pink-300/80 sm:text-[11px]">
-              {imageCount} {COPY.photos}{videoCount > 0 ? ` · ${videoCount} ${COPY.videos}` : ""}
+            <div className="mb-2 flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-pink-400 shadow-[0_0_6px_rgba(255,139,216,0.8)]" />
+              <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-pink-300/80 sm:text-[11px]">
+                {imageCount} {COPY.photos}{videoCount > 0 ? ` · ${videoCount} ${COPY.videos}` : ""}
+              </span>
             </div>
             <h2 className="truncate text-lg font-semibold tracking-wide text-white sm:text-xl">{planet.title}</h2>
             <p className="mt-1 text-[11px] tracking-[0.12em] text-pink-200/60 sm:text-xs">
@@ -237,14 +298,17 @@ function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemory
           </p>
         ) : null}
 
+        {/* Divider */}
+        <div className="mx-5 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent sm:mx-6" />
+
         {/* Photo Grid */}
-        <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
+        <div className="flex-1 overflow-y-auto px-5 pt-4 pb-5 sm:px-6 sm:pt-5 sm:pb-6">
           <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
             {planet.items.map((media, index) => (
               <motion.button
                 key={media.id}
                 type="button"
-                className="relative aspect-[3/4] overflow-hidden rounded-[12px] sm:rounded-[14px]"
+                className="group relative aspect-[3/4] overflow-hidden rounded-[12px] sm:rounded-[14px]"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.06 + index * 0.04, duration: 0.4 }}
@@ -254,13 +318,13 @@ function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemory
                   <>
                     <video src={media.url} className="h-full w-full object-cover" muted preload="metadata" />
                     <span className="absolute inset-0 flex items-center justify-center bg-black/18">
-                      <span className="grid h-8 w-8 place-items-center rounded-full bg-white/20 backdrop-blur-sm">
+                      <span className="grid h-8 w-8 place-items-center rounded-full bg-white/20 backdrop-blur-sm transition group-hover:bg-white/30">
                         <Play size={14} fill="white" className="text-white" />
                       </span>
                     </span>
                   </>
                 ) : (
-                  <Image src={media.thumb ?? media.url} alt="" fill className="object-cover" sizes="(max-width: 640px) 33vw, 200px" />
+                  <Image src={media.thumb ?? media.url} alt="" fill className="object-cover transition group-hover:scale-105" sizes="(max-width: 640px) 33vw, 200px" />
                 )}
                 {/* Shimmer border */}
                 <span className="pointer-events-none absolute inset-0 rounded-[12px] sm:rounded-[14px] ring-1 ring-white/8" />
@@ -268,6 +332,9 @@ function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemory
             ))}
           </div>
         </div>
+
+        {/* Bottom accent line */}
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-purple-400/30 to-transparent" />
       </motion.div>
     </motion.div>
   );
