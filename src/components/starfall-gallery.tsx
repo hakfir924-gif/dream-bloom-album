@@ -181,14 +181,75 @@ function WaterfallPhoto({
   const startY = compact ? 3.2 : 3.8;
 
   const isVideo = media.type === "video";
+
+  /* For videos: generate unique procedural texture per video */
+  const videoTexture = useMemo(() => {
+    if (!isVideo) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 256;
+    canvas.height = 340;
+    const ctx = canvas.getContext("2d")!;
+
+    // Gradient background using theme colors
+    const hueShift = slot.globalIndex * 37;
+    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, colors[2]);
+    grad.addColorStop(0.5, colors[0]);
+    grad.addColorStop(1, colors[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Decorative circles
+    ctx.globalAlpha = 0.15;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(
+        (hueShift * (i + 1) * 7) % canvas.width,
+        (hueShift * (i + 1) * 13) % canvas.height,
+        30 + i * 15,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // Play icon triangle
+    ctx.fillStyle = "#ffffff";
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 - 20, canvas.height / 2 - 25);
+    ctx.lineTo(canvas.width / 2 - 20, canvas.height / 2 + 25);
+    ctx.lineTo(canvas.width / 2 + 25, canvas.height / 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Video number label
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 18px sans-serif";
+    ctx.textAlign = "center";
+    const videoNum = slot.globalIndex + 1;
+    ctx.fillText(`VIDEO ${videoNum}`, canvas.width / 2, canvas.height - 20);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }, [isVideo, colors, slot.globalIndex]);
+
+  // For images: load texture normally
   const textureUrl = isVideo ? (fallbackThumb ?? "/universe-media/thumbs/001.jpg") : (media.thumb ?? media.url);
-  const texture = useTexture(textureUrl);
+  const loadedTexture = useTexture(textureUrl);
+  const activeTexture = isVideo ? videoTexture! : loadedTexture;
 
   useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = compact ? 4 : 8;
-    texture.needsUpdate = true;
-  }, [texture, compact]);
+    if (!isVideo) {
+      activeTexture.colorSpace = THREE.SRGBColorSpace;
+      activeTexture.anisotropy = compact ? 4 : 8;
+      activeTexture.needsUpdate = true;
+    }
+  }, [activeTexture, compact, isVideo]);
 
   /* S-curve position calculator */
   function getPosition(progress: number): [number, number, number] {
@@ -239,24 +300,24 @@ function WaterfallPhoto({
       {/* Photo plane */}
       <mesh onClick={handleClick}>
         <planeGeometry args={[photoW, photoH]} />
-        <meshBasicMaterial map={texture} transparent opacity={isVideo ? 0.7 : 0.98} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial map={activeTexture} transparent opacity={0.98} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
 
-      {/* Video darkening overlay + play icon */}
+      {/* Video overlay */}
       {isVideo ? (
         <group>
           <mesh position={[0, 0, 0.005]}>
             <planeGeometry args={[photoW, photoH]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.15} depthWrite={false} />
           </mesh>
           <group position={[0, 0, 0.01]}>
             <mesh>
               <circleGeometry args={[compact ? 0.1 : 0.12, 24]} />
-              <meshBasicMaterial color="#000000" transparent opacity={0.55} depthWrite={false} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.45} depthWrite={false} />
             </mesh>
             <mesh rotation={[0, 0, 0.15]} position={[0.01, 0, 0.001]}>
               <coneGeometry args={[0.025, 0.05, 3]} />
-              <meshBasicMaterial color="#ffffff" transparent opacity={0.9} depthWrite={false} />
+              <meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} />
             </mesh>
           </group>
         </group>
