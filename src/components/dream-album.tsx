@@ -1,0 +1,262 @@
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { Play, Sparkles, X } from "lucide-react";
+import Image from "next/image";
+import { useCallback, useMemo, useState } from "react";
+import { ThreeMemoryUniverse, type SmallMemoryPlanet, type UniverseMedia } from "@/components/three-memory-universe";
+
+const COPY = {
+  heart: "\u2764",
+  brand: "\u946b\u946b\u5b87\u5b99",
+  start: "\u5f00\u59cb\u63a2\u7d22",
+  closePreview: "\u5173\u95ed\u9884\u89c8",
+  closeDetail: "\u5173\u95ed\u8be6\u60c5",
+  photos: "PHOTOS",
+  videos: "VIDEOS",
+};
+
+export function DreamAlbum() {
+  const [exploring, setExploring] = useState(false);
+  const [preview, setPreview] = useState<UniverseMedia | null>(null);
+  const [detailPlanet, setDetailPlanet] = useState<SmallMemoryPlanet | null>(null);
+  const floaters = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, index) => ({
+        id: index,
+        left: `${(index * 37 + 9) % 100}%`,
+        delay: (index % 8) * 0.72,
+        duration: 11 + (index % 6),
+        size: 5 + (index % 4) * 2,
+        type: index % 5,
+      })),
+    [],
+  );
+
+  const handleSmallPlanetOpen = useCallback((planet: SmallMemoryPlanet) => {
+    setDetailPlanet(planet);
+    setPreview(null);
+  }, []);
+
+  const handleDetailClose = useCallback(() => {
+    setDetailPlanet(null);
+  }, []);
+
+  const handlePreviewFromDetail = useCallback((media: UniverseMedia) => {
+    setPreview(media);
+  }, []);
+
+  return (
+    <main className="universe-vignette relative h-[100svh] w-screen overflow-hidden text-white">
+      <FloatingAtmosphere floaters={floaters} dimmed={exploring} />
+      <ThreeMemoryUniverse exploring={exploring} onPreview={setPreview} onSmallPlanetOpen={handleSmallPlanetOpen} onDetailClose={handleDetailClose} detailOpen={Boolean(detailPlanet)} />
+
+      <AnimatePresence>
+        {!exploring ? (
+          <IntroHero key="intro" onStart={() => setExploring(true)} />
+        ) : (
+          <motion.div
+            key="hint"
+            className="pointer-events-none absolute inset-x-0 bottom-6 z-10 px-5 text-center text-[10px] tracking-[0.18em] text-pink-50/60 sm:text-[11px]"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: (preview || detailPlanet) ? 0 : 1, y: 0 }}
+            exit={{ opacity: 0 }}
+          >
+            DRAG · PINCH · TAP PLANET
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>{detailPlanet ? <PlanetDetailPanel planet={detailPlanet} onClose={handleDetailClose} onPreview={handlePreviewFromDetail} /> : null}</AnimatePresence>
+
+      <AnimatePresence>{preview ? <MediaPreview media={preview} onClose={() => setPreview(null)} /> : null}</AnimatePresence>
+    </main>
+  );
+}
+
+function FloatingAtmosphere({ floaters, dimmed }: { floaters: Array<{ id: number; left: string; delay: number; duration: number; size: number; type: number }>; dimmed: boolean }) {
+  return (
+    <div className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${dimmed ? "opacity-24" : "opacity-68"}`}>
+      {floaters.map((item) => (
+        <motion.span
+          key={item.id}
+          className="absolute bottom-[-8vh]"
+          style={{ left: item.left }}
+          animate={{
+            y: ["0vh", "-112vh"],
+            x: [0, item.id % 2 ? 22 : -18, item.id % 3 ? -8 : 12],
+            rotate: [0, item.type === 0 ? 35 : 160],
+            opacity: [0, 0.56, 0],
+          }}
+          transition={{ duration: item.duration, delay: item.delay, repeat: Infinity, ease: "easeInOut" }}
+        >
+          {item.type === 0 ? (
+            <i className="heart-shape block text-pink-300 drop-shadow-[0_0_12px_rgba(255,109,190,0.85)]" style={{ width: item.size, height: item.size }} />
+          ) : (
+            <i
+              className="block rounded-full bg-pink-100/75 shadow-[0_0_18px_rgba(255,202,239,0.8)]"
+              style={{
+                width: item.type === 1 ? item.size / 1.7 : item.size,
+                height: item.type === 1 ? item.size / 1.7 : item.size * 1.35,
+                borderRadius: item.type === 1 ? 999 : "999px 999px 999px 0",
+              }}
+            />
+          )}
+        </motion.span>
+      ))}
+    </div>
+  );
+}
+
+function IntroHero({ onStart }: { onStart: () => void }) {
+  return (
+    <motion.section
+      className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, scale: 1.08, filter: "blur(10px)" }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      <motion.div
+        className="mb-6 text-5xl text-pink-200 drop-shadow-[0_0_28px_rgba(255,128,200,0.95)]"
+        animate={{ scale: [1, 1.12, 1], opacity: [0.88, 1, 0.88] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {COPY.heart}
+      </motion.div>
+      <motion.h1
+        className="text-5xl font-semibold tracking-[0.16em] text-white drop-shadow-[0_0_36px_rgba(255,151,224,0.65)] sm:text-7xl"
+        initial={{ y: 18, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.8 }}
+      >
+        {COPY.brand}
+      </motion.h1>
+      <motion.p
+        className="mt-4 text-xs font-medium uppercase tracking-[0.32em] text-pink-50/76 sm:text-sm"
+        initial={{ y: 16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.24, duration: 0.8 }}
+      >
+        Every Planet Is A Memory
+      </motion.p>
+      <motion.button
+        type="button"
+        onClick={onStart}
+        className="mt-10 inline-flex h-13 items-center gap-2 rounded-full border border-pink-100/30 bg-white/12 px-7 text-sm font-medium tracking-[0.12em] text-pink-50 shadow-[0_0_42px_rgba(255,113,200,0.26)] backdrop-blur-xl transition hover:bg-white/18 active:scale-95"
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.38, duration: 0.8 }}
+      >
+        <Sparkles size={17} />
+        {COPY.start}
+      </motion.button>
+    </motion.section>
+  );
+}
+
+function MediaPreview({ media, onClose }: { media: UniverseMedia; onClose: () => void }) {
+  return (
+    <motion.div className="absolute inset-0 z-50 flex items-center justify-center bg-black/78 p-4 backdrop-blur-lg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+      <button type="button" onClick={onClose} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-full border border-white/16 bg-white/12 text-white" aria-label={COPY.closePreview}>
+        <X size={19} />
+      </button>
+      <motion.div className="relative max-h-[82svh] w-full max-w-3xl overflow-hidden rounded-[28px]" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 18 }} onClick={(event) => event.stopPropagation()}>
+        {media.type === "image" ? (
+          <Image src={media.url} alt="" width={1200} height={1600} className="max-h-[82svh] w-full object-contain" />
+        ) : (
+          <div className="relative">
+            <video src={media.url} className="max-h-[82svh] w-full bg-black" controls autoPlay playsInline />
+            <span className="pointer-events-none absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/16 text-white backdrop-blur-md">
+              <Play size={17} fill="currentColor" />
+            </span>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function PlanetDetailPanel({ planet, onClose, onPreview }: { planet: SmallMemoryPlanet; onClose: () => void; onPreview: (media: UniverseMedia) => void }) {
+  const imageCount = planet.items.filter((m) => m.type === "image").length;
+  const videoCount = planet.items.filter((m) => m.type === "video").length;
+
+  return (
+    <motion.div
+      className="absolute inset-0 z-40 flex items-center justify-center p-3 sm:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0, transition: { duration: 0.35 } }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="glass-panel relative flex max-h-[88svh] w-full max-w-xl flex-col overflow-hidden rounded-[24px]"
+        initial={{ scale: 0.88, y: 32, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        exit={{ scale: 0.92, y: 24, opacity: 0 }}
+        transition={{ type: "spring", damping: 28, stiffness: 320 }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-5 pt-5 pb-2 sm:px-6 sm:pt-6">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.2em] text-pink-300/80 sm:text-[11px]">
+              {imageCount} {COPY.photos}{videoCount > 0 ? ` · ${videoCount} ${COPY.videos}` : ""}
+            </div>
+            <h2 className="truncate text-lg font-semibold tracking-wide text-white sm:text-xl">{planet.title}</h2>
+            <p className="mt-1 text-[11px] tracking-[0.12em] text-pink-200/60 sm:text-xs">
+              2026-07-08 · 鑫鑫宇宙
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-3 grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/12 bg-white/8 text-pink-200/80 backdrop-blur-md transition hover:bg-white/14 active:scale-92"
+            aria-label={COPY.closeDetail}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Description */}
+        {planet.subtitle ? (
+          <p className="px-5 pb-3 text-xs leading-relaxed text-pink-100/50 sm:px-6 sm:text-[13px]">
+            {planet.subtitle}
+          </p>
+        ) : null}
+
+        {/* Photo Grid */}
+        <div className="flex-1 overflow-y-auto px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            {planet.items.map((media, index) => (
+              <motion.button
+                key={media.id}
+                type="button"
+                className="relative aspect-[3/4] overflow-hidden rounded-[12px] sm:rounded-[14px]"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06 + index * 0.04, duration: 0.4 }}
+                onClick={() => onPreview(media)}
+              >
+                {media.type === "video" ? (
+                  <>
+                    <video src={media.url} className="h-full w-full object-cover" muted preload="metadata" />
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/18">
+                      <span className="grid h-8 w-8 place-items-center rounded-full bg-white/20 backdrop-blur-sm">
+                        <Play size={14} fill="white" className="text-white" />
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  <Image src={media.thumb ?? media.url} alt="" fill className="object-cover" sizes="(max-width: 640px) 33vw, 200px" />
+                )}
+                {/* Shimmer border */}
+                <span className="pointer-events-none absolute inset-0 rounded-[12px] sm:rounded-[14px] ring-1 ring-white/8" />
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}

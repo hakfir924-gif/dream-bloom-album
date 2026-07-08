@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+:root {
+  --background: #07030f;
+  --foreground: #fff6ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  background: #07030f;
+}
+
+body {
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+button,
+canvas {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 180, 232, 0.28);
+  border-radius: 999px;
+}
+
+.dream-vignette {
+  background:
+    radial-gradient(circle at 50% 16%, rgba(255, 126, 207, 0.3), transparent 25%),
+    radial-gradient(circle at 18% 72%, rgba(120, 76, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 82% 72%, rgba(255, 76, 154, 0.2), transparent 30%),
+    linear-gradient(180deg, #12051d 0%, #07030f 52%, #020106 100%);
+}
+
+.universe-vignette {
+  background:
+    radial-gradient(circle at 50% 43%, rgba(255, 117, 210, 0.38), transparent 20%),
+    radial-gradient(ellipse at 48% 48%, rgba(190, 132, 255, 0.2), transparent 36%),
+    radial-gradient(circle at 18% 24%, rgba(164, 112, 255, 0.36), transparent 30%),
+    radial-gradient(circle at 84% 68%, rgba(255, 129, 210, 0.24), transparent 30%),
+    radial-gradient(circle at 50% 104%, rgba(93, 45, 178, 0.36), transparent 36%),
+    radial-gradient(ellipse at 50% 52%, rgba(255, 218, 247, 0.1), transparent 48%),
+    linear-gradient(180deg, #160722 0%, #090314 48%, #020106 100%);
+}
+
+.universe-vignette::before,
+.universe-vignette::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+}
+
+.universe-vignette::before {
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(255, 220, 249, 0.12), transparent 36%),
+    radial-gradient(ellipse at 72% 18%, rgba(131, 215, 255, 0.08), transparent 28%),
+    radial-gradient(ellipse at 36% 46%, rgba(255, 171, 227, 0.16), transparent 34%),
+    radial-gradient(ellipse at 68% 32%, rgba(165, 128, 255, 0.13), transparent 31%),
+    radial-gradient(ellipse at 52% 62%, rgba(117, 229, 255, 0.08), transparent 38%),
+    linear-gradient(116deg, transparent 12%, rgba(255, 196, 238, 0.075) 38%, rgba(166, 128, 255, 0.045) 52%, transparent 72%);
+  animation: nebula-drift 24s ease-in-out infinite alternate;
+  filter: blur(1px);
+  mix-blend-mode: screen;
+  transform: scale(1.06);
+}
+
+.universe-vignette::after {
+  background-image:
+    radial-gradient(circle, rgba(255, 234, 252, 0.8) 0 1px, transparent 1.8px),
+    radial-gradient(circle, rgba(255, 126, 210, 0.45) 0 1.2px, transparent 2px),
+    radial-gradient(circle, rgba(169, 224, 255, 0.5) 0 1px, transparent 1.7px);
+  background-position:
+    12px 18px,
+    70px 92px,
+    36px 58px;
+  background-size:
+    118px 142px,
+    176px 210px,
+    240px 260px;
+  animation: star-breathe 18s ease-in-out infinite alternate;
+  opacity: 0.4;
+}
+
+.memory-gallery::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 22% 8%, rgba(255, 185, 232, 0.2), transparent 28%),
+    radial-gradient(circle at 86% 28%, rgba(147, 226, 255, 0.1), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 38%);
+  mix-blend-mode: screen;
+}
+
+@keyframes nebula-drift {
+  0% {
+    transform: translate3d(-1.5%, -1%, 0) scale(1.06) rotate(-1deg);
+    opacity: 0.86;
+  }
+
+  100% {
+    transform: translate3d(1.5%, 1%, 0) scale(1.1) rotate(1deg);
+    opacity: 1;
+  }
+}
+
+@keyframes star-breathe {
+  0% {
+    opacity: 0.28;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0.5;
+    transform: translateY(-10px);
+  }
+}
+
+.glass-panel {
+  background: linear-gradient(135deg, rgba(255, 236, 255, 0.18), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 226, 255, 0.24);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(22px) saturate(130%);
+}
+
+.heart-shape {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: currentColor;
+}
+
+.heart-shape::before,
+.heart-shape::after {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  content: "";
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.heart-shape::before {
+  left: -6px;
+}
+
+.heart-shape::after {
+  top: -6px;
+}

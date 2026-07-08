@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 880">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ff6fad"/><stop offset=".55" stop-color="#ffefe1"/><stop offset="1" stop-color="#31102d"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="20"/></filter></defs>
+  <rect width="640" height="880" fill="url(#g)"/>
+  <circle cx="390" cy="230" r="160" fill="#fff" opacity=".21" filter="url(#b)"/>
+  <g fill="#fff" opacity=".16"><ellipse cx="165" cy="520" rx="58" ry="17" transform="rotate(-34 165 520)"/><ellipse cx="505" cy="620" rx="52" ry="16" transform="rotate(28 505 620)"/><ellipse cx="260" cy="290" rx="48" ry="15" transform="rotate(16 260 290)"/></g>
+  <text x="320" y="430" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="54" font-weight="700">心动花束</text>
+  <text x="320" y="482" text-anchor="middle" fill="#fff" opacity=".78" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="5">BLOOMING HEART</text>
+</svg>

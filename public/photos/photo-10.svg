@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 880">
+  <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#ff78c8"/><stop offset=".55" stop-color="#ffe1f3"/><stop offset="1" stop-color="#18051c"/></linearGradient><filter id="b"><feGaussianBlur stdDeviation="21"/></filter></defs>
+  <rect width="640" height="880" fill="url(#g)"/>
+  <circle cx="400" cy="250" r="170" fill="#fff" opacity=".22" filter="url(#b)"/>
+  <g fill="#fff" opacity=".16"><ellipse cx="150" cy="350" rx="52" ry="16" transform="rotate(-22 150 350)"/><ellipse cx="500" cy="625" rx="62" ry="18" transform="rotate(19 500 625)"/><ellipse cx="270" cy="710" rx="50" ry="15" transform="rotate(-35 270 710)"/></g>
+  <text x="320" y="430" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="54" font-weight="700">永恒盛放</text>
+  <text x="320" y="482" text-anchor="middle" fill="#fff" opacity=".78" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="5">ETERNAL BLOSSOM</text>
+</svg>
