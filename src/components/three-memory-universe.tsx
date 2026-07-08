@@ -74,10 +74,11 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onSmallPlanetOpen, o
       <Canvas gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} dpr={[1, 2]}>
         <PerspectiveCamera makeDefault position={[0, 0.28, 10.6]} fov={46} />
         <color attach="background" args={["#05020d"]} />
-        <fog attach="fog" args={["#11051e", 7, 24]} />
+        <fog attach="fog" args={["#0a0218", 5, 20]} />
         <ambientLight intensity={1.16} />
         <pointLight position={[0, 0, 0]} color="#ff91d7" intensity={5.2} distance={13} />
         <pointLight position={[-4.8, 3.4, 3.5]} color="#8ee7ff" intensity={3.2} distance={15} />
+        <Stars radius={90} depth={60} count={isMobile ? 400 : 900} factor={isMobile ? 1.0 : 1.3} saturation={0.3} fade speed={0.015} />
         <Stars radius={70} depth={42} count={isMobile ? 620 : 1400} factor={isMobile ? 1.8 : 2.35} saturation={0.8} fade speed={0.035} />
         <NebulaClouds compact={isMobile} />
         <ShootingStars compact={isMobile} />
@@ -193,6 +194,7 @@ function SceneContent({
       <BigPlanets planets={manifest.bigPlanets} activePlanetId={activePlanetId} onSelectPlanet={onSelectPlanet} />
       <SmallPlanets items={manifest.smallPlanets} hidden={Boolean(activePlanet)} onSelectSmallPlanet={onSelectSmallPlanet} />
       {activePlanet ? <StarfallGallery memory={activePlanet} compact={compact} onPreview={onPreview} visible /> : null}
+      <RippleEffect activePlanetId={activePlanetId} />
     </group>
   );
 }
@@ -257,6 +259,7 @@ function BigPlanet({
   onClick: (id: BigMemoryPlanet["id"]) => void;
 }) {
   const group = useRef<THREE.Group>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
   const cover = useTexture(planet.cover ?? "/universe-media/thumbs/001.jpg");
   const colors = THEME_COLORS[planet.theme];
 
@@ -272,6 +275,7 @@ function BigPlanet({
     group.current.rotation.z += delta * (0.018 + index * 0.006);
     const breath = 1 + Math.sin(state.clock.elapsedTime * 0.85 + index) * 0.025;
     group.current.scale.setScalar((active ? 1.28 : 1) * breath);
+    if (ringRef.current) ringRef.current.rotation.z += delta * 0.15;
   });
 
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
@@ -305,6 +309,11 @@ function BigPlanet({
         <mesh position={[0, 0, -0.01]} scale={1.16}>
           <circleGeometry args={[0.38, 56]} />
           <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.02 : 0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+        {/* Cover photo shimmer ring */}
+        <mesh ref={ringRef}>
+          <ringGeometry args={[0.42, 0.44, 56]} />
+          <meshBasicMaterial color={colors[1]} transparent opacity={faded ? 0.02 : 0.2} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
         </mesh>
       </Billboard>
       {/* Orbital ring */}
@@ -353,6 +362,7 @@ function SmallPlanets({ items, hidden, onSelectSmallPlanet }: { items: SmallMemo
 
 function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { item: SmallMemoryPlanet; placement: { position: [number, number, number]; size: number; phase: number }; hidden: boolean; index: number; onSelectSmallPlanet: (id: string) => void }) {
   const group = useRef<THREE.Group>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
   const texture = useTexture(item.cover ?? "/universe-media/thumbs/001.jpg");
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
@@ -364,6 +374,10 @@ function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { 
     group.current.position.y = placement.position[1] + Math.sin(state.clock.elapsedTime * 0.45 + index) * 0.08;
     group.current.rotation.y = state.clock.elapsedTime * 0.08 + placement.phase;
     group.current.rotation.z = state.clock.elapsedTime * 0.035 + placement.phase;
+    if (glowRef.current) {
+      const pulse = 0.16 + Math.sin(state.clock.elapsedTime * 1.2 + index * 0.8) * 0.08;
+      (glowRef.current.material as THREE.MeshBasicMaterial).opacity = hidden ? 0.02 : pulse;
+    }
   });
   const handleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
@@ -371,6 +385,11 @@ function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { 
   };
   return (
     <group ref={group} position={placement.position} scale={hidden ? 0.4 : 1}>
+      {/* Outer pulse glow */}
+      <mesh ref={glowRef} scale={2.4}>
+        <sphereGeometry args={[placement.size * 0.8, 12, 8]} />
+        <meshBasicMaterial color={index % 3 === 0 ? "#ff8bd8" : index % 3 === 1 ? "#8ee7ff" : "#ffd18f"} transparent opacity={0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
       <mesh scale={1.95}>
         <sphereGeometry args={[placement.size, 16, 10]} />
         <meshBasicMaterial color={index % 3 === 0 ? "#ff8bd8" : index % 3 === 1 ? "#8ee7ff" : "#ffd18f"} transparent opacity={hidden ? 0.02 : 0.16} depthWrite={false} blending={THREE.AdditiveBlending} />
@@ -385,6 +404,11 @@ function SmallPlanet({ item, placement, hidden, index, onSelectSmallPlanet }: { 
           <meshBasicMaterial map={texture} transparent opacity={hidden ? 0.05 : 0.8} depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       </Billboard>
+      {/* Tiny trailing glow dot */}
+      <mesh position={[0, -placement.size * 0.3, 0]}>
+        <sphereGeometry args={[placement.size * 0.15, 8, 6]} />
+        <meshBasicMaterial color={index % 3 === 0 ? "#ff8bd8" : index % 3 === 1 ? "#8ee7ff" : "#ffd18f"} transparent opacity={hidden ? 0.01 : 0.25} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
     </group>
   );
 }
@@ -619,6 +643,41 @@ function ShootingStars({ compact }: { compact: boolean }) {
         </mesh>
       ))}
     </group>
+  );
+}
+
+function RippleEffect({ activePlanetId }: { activePlanetId: BigMemoryPlanet["id"] | null }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (activePlanetId) {
+      setProgress(0);
+    }
+  }, [activePlanetId]);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current || !activePlanetId) return;
+    const p = Math.min(progress + delta * 0.8, 1);
+    setProgress(p);
+    meshRef.current.scale.setScalar(0.5 + p * 3);
+    (meshRef.current.material as THREE.MeshBasicMaterial).opacity = (1 - p) * 0.3;
+    meshRef.current.visible = p < 1;
+  });
+
+  if (!activePlanetId) return null;
+
+  const positions: Record<BigMemoryPlanet["id"], [number, number, number]> = {
+    photos: [0, 1.0, -0.4],
+    motion: [-2.45, -0.75, 0.25],
+    best: [2.45, -0.7, 0.05],
+  };
+
+  return (
+    <mesh ref={meshRef} position={positions[activePlanetId]} rotation={[Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.8, 0.85, 48]} />
+      <meshBasicMaterial color="#ff91d7" transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+    </mesh>
   );
 }
 

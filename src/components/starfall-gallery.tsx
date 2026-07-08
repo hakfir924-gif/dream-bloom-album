@@ -137,6 +137,16 @@ function GalleryContent({
 
       {/* Background stardust rain */}
       <StardustRain compact={compact} colors={colors} />
+
+      {/* Theme color fog */}
+      <mesh position={[0, 0, -3]}>
+        <sphereGeometry args={[compact ? 3.5 : 5, 24, 16]} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={0.04} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh position={[0, -1, -4]}>
+        <sphereGeometry args={[compact ? 4 : 6, 20, 14]} />
+        <meshBasicMaterial color={colors[2]} transparent opacity={0.03} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
     </>
   );
 }
