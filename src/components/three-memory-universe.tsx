@@ -71,7 +71,7 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onSmallPlanetOpen, o
 
   return (
     <div className="absolute inset-0 touch-none">
-      <Canvas gl={{ antialias: !isMobile, alpha: true, powerPreference: "high-performance" }} dpr={isMobile ? [0.75, 1] : [1, 1.35]}>
+      <Canvas gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }} dpr={[1, 2]}>
         <PerspectiveCamera makeDefault position={[0, 0.28, 10.6]} fov={46} />
         <color attach="background" args={["#05020d"]} />
         <fog attach="fog" args={["#11051e", 7, 24]} />
@@ -231,7 +231,7 @@ function BigPlanets({
   return (
     <group>
       {planets.map((planet, index) => (
-        <BigPlanet key={planet.id} planet={planet} position={positions[index]} index={index} faded={Boolean(activePlanetId && activePlanetId !== planet.id)} active={activePlanetId === planet.id} onClick={onSelectPlanet} />
+        <BigPlanet key={planet.id} planet={planet} position={positions[index]} index={index} faded={Boolean(activePlanetId && activePlanetId !== planet.id)} active={false} hidden={activePlanetId === planet.id} onClick={onSelectPlanet} />
       ))}
     </group>
   );
@@ -243,6 +243,7 @@ function BigPlanet({
   index,
   faded,
   active,
+  hidden,
   onClick,
 }: {
   planet: BigMemoryPlanet;
@@ -250,6 +251,7 @@ function BigPlanet({
   index: number;
   faded: boolean;
   active: boolean;
+  hidden: boolean;
   onClick: (id: BigMemoryPlanet["id"]) => void;
 }) {
   const group = useRef<THREE.Group>(null);
@@ -258,7 +260,7 @@ function BigPlanet({
 
   useEffect(() => {
     cover.colorSpace = THREE.SRGBColorSpace;
-    cover.anisotropy = 2;
+    cover.anisotropy = 8;
     cover.needsUpdate = true;
   }, [cover]);
 
@@ -276,7 +278,7 @@ function BigPlanet({
   };
 
   return (
-    <group ref={group} position={position}>
+    <group ref={group} position={position} visible={!hidden}>
       <mesh scale={2.15}>
         <sphereGeometry args={[0.43, 36, 22]} />
         <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.03 : 0.17} depthWrite={false} blending={THREE.AdditiveBlending} />

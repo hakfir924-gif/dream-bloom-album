@@ -30,10 +30,16 @@ interface StreamLane {
   speed: number;
 }
 
-const STREAM_LANES: StreamLane[] = [
+const STREAM_LANES_WIDE: StreamLane[] = [
   { baseX: -1.55, baseZ: 0.0, swayAmplitude: 0.32, depthAmplitude: 0.18, phase: 0, speed: 0.095 },
   { baseX: 0.0, baseZ: 0.15, swayAmplitude: 0.38, depthAmplitude: 0.22, phase: Math.PI * 0.66, speed: 0.082 },
   { baseX: 1.55, baseZ: 0.0, swayAmplitude: 0.32, depthAmplitude: 0.18, phase: Math.PI * 1.33, speed: 0.1 },
+];
+
+const STREAM_LANES_COMPACT: StreamLane[] = [
+  { baseX: -0.82, baseZ: 0.0, swayAmplitude: 0.22, depthAmplitude: 0.12, phase: 0, speed: 0.085 },
+  { baseX: 0.0, baseZ: 0.1, swayAmplitude: 0.26, depthAmplitude: 0.14, phase: Math.PI * 0.66, speed: 0.075 },
+  { baseX: 0.82, baseZ: 0.0, swayAmplitude: 0.22, depthAmplitude: 0.12, phase: Math.PI * 1.33, speed: 0.09 },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -82,7 +88,7 @@ function GalleryContent({
   onPreview: (media: UniverseMedia) => void;
 }) {
   const colors = THEME_COLORS[memory.theme];
-  const maxPhotos = compact ? 12 : 20;
+  const maxPhotos = compact ? 15 : 20;
 
   const items = useMemo(() => memory.items.slice(0, maxPhotos), [memory.items, maxPhotos]);
 
@@ -141,13 +147,13 @@ function WaterfallPhoto({
   const glowRef = useRef<THREE.Mesh>(null);
   const trailRef = useRef<THREE.Points>(null);
 
-  const lane = STREAM_LANES[slot.laneIndex];
+  const lane = (compact ? STREAM_LANES_COMPACT : STREAM_LANES_WIDE)[slot.laneIndex];
   const progressOffset = slot.positionInLane / slot.totalInLane; // stagger start
 
-  const photoW = compact ? 0.38 : 0.48;
-  const photoH = compact ? 0.5 : 0.64;
-  const fallRange = compact ? 5.0 : 7.0;
-  const startY = compact ? 2.8 : 3.8;
+  const photoW = compact ? 0.58 : 0.48;
+  const photoH = compact ? 0.76 : 0.64;
+  const fallRange = compact ? 5.5 : 7.0;
+  const startY = compact ? 3.2 : 3.8;
   const trailCount = compact ? 5 : 10;
 
   /* Trail particle buffer – lazily built once */
@@ -167,7 +173,7 @@ function WaterfallPhoto({
 
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = compact ? 1 : 2;
+    texture.anisotropy = compact ? 4 : 8;
     texture.needsUpdate = true;
   }, [texture, compact]);
 
