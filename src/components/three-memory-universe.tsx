@@ -79,6 +79,8 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onSmallPlanetOpen, o
         <pointLight position={[0, 0, 0]} color="#ff91d7" intensity={5.2} distance={13} />
         <pointLight position={[-4.8, 3.4, 3.5]} color="#8ee7ff" intensity={3.2} distance={15} />
         <Stars radius={70} depth={42} count={isMobile ? 620 : 1400} factor={isMobile ? 1.8 : 2.35} saturation={0.8} fade speed={0.035} />
+        <NebulaClouds compact={isMobile} />
+        <ShootingStars compact={isMobile} />
         <SpaceDust compact={isMobile} />
         <CameraControls enabled={exploring && !detailOpen} activePlanetId={activePlanetId} />
         <CameraFly activePlanetId={activePlanetId} />
@@ -525,6 +527,97 @@ function SpaceDust({ compact }: { compact: boolean }) {
         </bufferGeometry>
         <pointsMaterial size={0.032} color="#ffd7f3" transparent opacity={0.64} depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
+    </group>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NebulaClouds – soft colored gas clouds for depth
+   ═══════════════════════════════════════════════════════════════ */
+function NebulaClouds({ compact }: { compact: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const clouds = useMemo(
+    () =>
+      [
+        { position: [-6, 3, -8] as [number, number, number], color: "#ff6bcd", scale: compact ? 4.5 : 6, opacity: 0.025 },
+        { position: [7, -2, -10] as [number, number, number], color: "#8b5cf6", scale: compact ? 3.8 : 5.5, opacity: 0.03 },
+        { position: [-3, -4, -7] as [number, number, number], color: "#06b6d4", scale: compact ? 3.2 : 4.5, opacity: 0.02 },
+        { position: [4, 5, -12] as [number, number, number], color: "#ec4899", scale: compact ? 3 : 4.8, opacity: 0.018 },
+        { position: [0, 0, -6] as [number, number, number], color: "#a855f7", scale: compact ? 5 : 7, opacity: 0.015 },
+        { position: [-8, 1, -9] as [number, number, number], color: "#f472b6", scale: compact ? 2.8 : 4, opacity: 0.022 },
+      ].map((c, i) => ({ ...c, phase: i * 1.4 })),
+    [compact],
+  );
+
+  useFrame((state) => {
+    if (!group.current) return;
+    group.current.rotation.y += 0.0003;
+    group.current.children.forEach((child, i) => {
+      const cloud = clouds[i];
+      const pulse = 1 + Math.sin(state.clock.elapsedTime * 0.15 + cloud.phase) * 0.08;
+      child.scale.setScalar(cloud.scale * pulse);
+    });
+  });
+
+  return (
+    <group ref={group}>
+      {clouds.map((cloud, i) => (
+        <mesh key={i} position={cloud.position}>
+          <sphereGeometry args={[1, 16, 16]} />
+          <meshBasicMaterial color={cloud.color} transparent opacity={cloud.opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ShootingStars – occasional shooting star streaks
+   ═══════════════════════════════════════════════════════════════ */
+function ShootingStars({ compact }: { compact: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const count = compact ? 3 : 5;
+  const stars = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        phase: i * 2.7 + seed(i, 7) * 5,
+        speed: 0.4 + seed(i, 3) * 0.3,
+        startX: (seed(i, 1) - 0.5) * 16,
+        startY: 3 + seed(i, 2) * 4,
+        length: compact ? 0.6 : 1.0,
+      })),
+    [count, compact],
+  );
+
+  useFrame((state) => {
+    if (!group.current) return;
+    const t = state.clock.elapsedTime;
+    group.current.children.forEach((child, i) => {
+      const star = stars[i];
+      const cycle = ((t * star.speed + star.phase) % 4) / 4; // 0-1 cycle, visible only in first 20%
+      if (cycle < 0.2) {
+        const progress = cycle / 0.2;
+        child.visible = true;
+        const x = star.startX + progress * 4;
+        const y = star.startY - progress * 3;
+        child.position.set(x, y, -2);
+        (child as THREE.Mesh).scale.setScalar(1 - progress * 0.5);
+        const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial;
+        mat.opacity = (1 - progress) * 0.7;
+      } else {
+        child.visible = false;
+      }
+    });
+  });
+
+  return (
+    <group ref={group}>
+      {stars.map((star, i) => (
+        <mesh key={i} rotation={[0, 0, -0.6]} visible={false}>
+          <planeGeometry args={[star.length, 0.02]} />
+          <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+      ))}
     </group>
   );
 }

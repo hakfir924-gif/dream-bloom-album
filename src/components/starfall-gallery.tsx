@@ -92,16 +92,18 @@ function GalleryContent({
 
   const items = useMemo(() => memory.items.slice(0, maxPhotos), [memory.items, maxPhotos]);
 
-  /* Pre-compute fallback thumbs for videos (use nearest image thumb) */
+  /* Pre-compute fallback thumbs for videos (use planet cover or nearest image thumb) */
   const fallbackThumbs = useMemo(() => {
     const map = new Map<string, string>();
     let nearestThumb: string | null = null;
     for (const item of memory.items) {
       if (item.type === "image" && item.thumb) nearestThumb = item.thumb;
-      if (item.type === "video" && !item.thumb && nearestThumb) map.set(item.id, nearestThumb);
+      if (item.type === "video" && !item.thumb) {
+        map.set(item.id, nearestThumb ?? (memory.cover ?? "/universe-media/thumbs/001.jpg"));
+      }
     }
     return map;
-  }, [memory.items]);
+  }, [memory.items, memory.cover]);
 
   /* Distribute photos evenly across 3 lanes */
   const photoSlots = useMemo(() => {
@@ -227,20 +229,26 @@ function WaterfallPhoto({
       {/* Photo plane */}
       <mesh onClick={handleClick}>
         <planeGeometry args={[photoW, photoH]} />
-        <meshBasicMaterial map={texture} transparent opacity={0.98} side={THREE.DoubleSide} depthWrite={false} />
+        <meshBasicMaterial map={texture} transparent opacity={isVideo ? 0.7 : 0.98} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
 
-      {/* Video play icon - small triangle */}
+      {/* Video darkening overlay + play icon */}
       {isVideo ? (
-        <group position={[photoW * 0.3, -photoH * 0.3, 0.01]}>
-          <mesh>
-            <circleGeometry args={[compact ? 0.1 : 0.12, 24]} />
-            <meshBasicMaterial color="#000000" transparent opacity={0.55} depthWrite={false} />
+        <group>
+          <mesh position={[0, 0, 0.005]}>
+            <planeGeometry args={[photoW, photoH]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.3} depthWrite={false} />
           </mesh>
-          <mesh rotation={[0, 0, 0.15]} position={[0.01, 0, 0.001]}>
-            <coneGeometry args={[0.025, 0.05, 3]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} depthWrite={false} />
-          </mesh>
+          <group position={[0, 0, 0.01]}>
+            <mesh>
+              <circleGeometry args={[compact ? 0.1 : 0.12, 24]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.55} depthWrite={false} />
+            </mesh>
+            <mesh rotation={[0, 0, 0.15]} position={[0.01, 0, 0.001]}>
+              <coneGeometry args={[0.025, 0.05, 3]} />
+              <meshBasicMaterial color="#ffffff" transparent opacity={0.9} depthWrite={false} />
+            </mesh>
+          </group>
         </group>
       ) : null}
     </group>
