@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Play, Sparkles, X } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ThreeMemoryUniverse, type SmallMemoryPlanet, type UniverseMedia } from "@/components/three-memory-universe";
 
 const COPY = {
@@ -20,6 +20,7 @@ export function DreamAlbum() {
   const [exploring, setExploring] = useState(false);
   const [preview, setPreview] = useState<UniverseMedia | null>(null);
   const [detailPlanet, setDetailPlanet] = useState<SmallMemoryPlanet | null>(null);
+  const bgmRef = useRef<HTMLAudioElement | null>(null);
   const floaters = useMemo(
     () =>
       Array.from({ length: 14 }, (_, index) => ({
@@ -45,6 +46,17 @@ export function DreamAlbum() {
   const handlePreviewFromDetail = useCallback((media: UniverseMedia) => {
     setPreview(media);
   }, []);
+
+  /* Background music – start on first explore */
+  useEffect(() => {
+    if (exploring && !bgmRef.current) {
+      const audio = new Audio("/audio/bgm.mp3");
+      audio.loop = true;
+      audio.volume = 0.35;
+      audio.play().catch(() => {});
+      bgmRef.current = audio;
+    }
+  }, [exploring]);
 
   return (
     <main className="universe-vignette relative h-[100svh] w-screen overflow-hidden text-white">

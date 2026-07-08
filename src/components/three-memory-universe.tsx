@@ -279,31 +279,41 @@ function BigPlanet({
 
   return (
     <group ref={group} position={position} visible={!hidden}>
+      {/* Core glow sphere */}
       <mesh scale={2.15}>
         <sphereGeometry args={[0.43, 36, 22]} />
         <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.03 : 0.17} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
+      {/* Glass planet body */}
       <mesh onClick={handleClick}>
         <sphereGeometry args={[0.62, 42, 28]} />
-        <meshPhysicalMaterial color={colors[2]} transparent opacity={faded ? 0.045 : 0.17} transmission={0.45} roughness={0.05} clearcoat={1} emissive={colors[0]} emissiveIntensity={0.055} depthWrite={false} />
+        <meshPhysicalMaterial color={colors[2]} transparent opacity={faded ? 0.045 : 0.2} transmission={0.5} roughness={0.05} clearcoat={1} emissive={colors[0]} emissiveIntensity={0.06} depthWrite={false} />
       </mesh>
+      {/* Atmospheric rim glow (Fresnel-like) */}
+      <mesh scale={1.35}>
+        <sphereGeometry args={[0.62, 42, 28]} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.01 : 0.08} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
+      </mesh>
+      {/* Cover photo */}
       <Billboard position={[0, 0, 0.26]} follow>
         <mesh onClick={handleClick}>
           <circleGeometry args={[0.38, 56]} />
-          <meshBasicMaterial map={cover} transparent opacity={faded ? 0.08 : 0.82} depthWrite={false} side={THREE.DoubleSide} />
+          <meshBasicMaterial map={cover} transparent opacity={faded ? 0.08 : 0.85} depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
         <mesh position={[0, 0, -0.01]} scale={1.16}>
           <circleGeometry args={[0.38, 56]} />
           <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.02 : 0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
         </mesh>
       </Billboard>
-      <mesh position={[-0.18, 0.22, 0.46]} rotation={[0, 0, -0.42]} scale={[0.52, 0.16, 1]}>
-        <circleGeometry args={[0.28, 28]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={faded ? 0.04 : 0.24} depthWrite={false} />
-      </mesh>
+      {/* Orbital ring */}
       <mesh rotation={[0.58, 0.18, index * 0.8]}>
         <ringGeometry args={[0.78, 0.8, 92]} />
         <meshBasicMaterial color={colors[1]} transparent opacity={faded ? 0.035 : 0.34} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Second thinner ring */}
+      <mesh rotation={[0.42, -0.1, index * 0.8 + 0.5]} scale={0.88}>
+        <ringGeometry args={[0.72, 0.73, 92]} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={faded ? 0.02 : 0.18} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
       <Text position={[0, -0.94, 0.22]} fontSize={0.115} anchorX="center" anchorY="middle" color="#fff7ff" outlineWidth={0.006} outlineColor="#251020" fillOpacity={faded ? 0.25 : 1}>
         {planet.title}

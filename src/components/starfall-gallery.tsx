@@ -92,6 +92,17 @@ function GalleryContent({
 
   const items = useMemo(() => memory.items.slice(0, maxPhotos), [memory.items, maxPhotos]);
 
+  /* Pre-compute fallback thumbs for videos (use nearest image thumb) */
+  const fallbackThumbs = useMemo(() => {
+    const map = new Map<string, string>();
+    let nearestThumb: string | null = null;
+    for (const item of memory.items) {
+      if (item.type === "image" && item.thumb) nearestThumb = item.thumb;
+      if (item.type === "video" && !item.thumb && nearestThumb) map.set(item.id, nearestThumb);
+    }
+    return map;
+  }, [memory.items]);
+
   /* Distribute photos evenly across 3 lanes */
   const photoSlots = useMemo(() => {
     return items.map((media, index) => {
@@ -117,6 +128,7 @@ function GalleryContent({
             compact={compact}
             colors={colors}
             onPreview={onPreview}
+            fallbackThumb={fallbackThumbs.get(slot.media.id)}
           />
         ))}
       </group>
@@ -136,16 +148,17 @@ function WaterfallPhoto({
   compact,
   colors,
   onPreview,
+  fallbackThumb,
 }: {
   media: UniverseMedia;
   slot: { laneIndex: number; positionInLane: number; totalInLane: number; globalIndex: number };
   compact: boolean;
   colors: [string, string, string];
   onPreview: (media: UniverseMedia) => void;
+  fallbackThumb?: string;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const glowRef = useRef<THREE.Mesh>(null);
-  const trailRef = useRef<THREE.Points>(null);
 
   const lane = (compact ? STREAM_LANES_COMPACT : STREAM_LANES_WIDE)[slot.laneIndex];
   const progressOffset = slot.positionInLane / slot.totalInLane; // stagger start
@@ -154,42 +167,16 @@ function WaterfallPhoto({
   const photoH = compact ? 0.76 : 0.64;
   const fallRange = compact ? 5.5 : 7.0;
   const startY = compact ? 3.2 : 3.8;
-  const trailCount = compact ? 5 : 10;
-
-  /* Trail particle buffer – lazily built once */
-  const trailGeometry = useMemo(() => {
-    const positions = new Float32Array(trailCount * 3);
-    const sizes = new Float32Array(trailCount);
-    const opacities = new Float32Array(trailCount);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-    geo.setAttribute("size", new THREE.Float32BufferAttribute(sizes, 1));
-    geo.setAttribute("aOpacity", new THREE.Float32BufferAttribute(opacities, 1));
-    return geo;
-  }, [trailCount]);
 
   const isVideo = media.type === "video";
-  const texture = useTexture(isVideo ? "/universe-media/thumbs/001.jpg" : (media.thumb ?? media.url));
+  const textureUrl = isVideo ? (fallbackThumb ?? "/universe-media/thumbs/001.jpg") : (media.thumb ?? media.url);
+  const texture = useTexture(textureUrl);
 
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = compact ? 4 : 8;
     texture.needsUpdate = true;
   }, [texture, compact]);
-
-  const trailMaterial = useMemo(
-    () =>
-      new THREE.PointsMaterial({
-        size: compact ? 0.045 : 0.058,
-        color: colors[0],
-        transparent: true,
-        opacity: 0.72,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        sizeAttenuation: true,
-      }),
-    [colors, compact],
-  );
 
   /* S-curve position calculator */
   function getPosition(progress: number): [number, number, number] {
@@ -219,28 +206,8 @@ function WaterfallPhoto({
 
     // Glow pulse
     if (glowRef.current) {
-      const glowPulse = 0.14 + Math.sin(state.clock.elapsedTime * 1.2 + slot.globalIndex) * 0.04;
+      const glowPulse = 0.1 + Math.sin(state.clock.elapsedTime * 1.2 + slot.globalIndex) * 0.03;
       (glowRef.current.material as THREE.MeshBasicMaterial).opacity = glowPulse;
-    }
-
-    // Update trail particles
-    if (trailRef.current) {
-      const posAttr = trailRef.current.geometry.getAttribute("position") as THREE.BufferAttribute;
-      const sizeAttr = trailRef.current.geometry.getAttribute("size") as THREE.BufferAttribute;
-
-      for (let i = 0; i < trailCount; i++) {
-        const trailProgress = (rawProgress - (i + 1) * 0.008 + 1) % 1;
-        const [tx, ty, tz] = getPosition(trailProgress);
-        posAttr.setXYZ(i, tx, ty, tz);
-
-        const s = Math.max(0.001, (1 - i / trailCount) * (compact ? 0.04 : 0.055));
-        sizeAttr.setX(i, s);
-      }
-      posAttr.needsUpdate = true;
-      sizeAttr.needsUpdate = true;
-
-      // Fade trail material opacity based on trail count
-      (trailRef.current.material as THREE.PointsMaterial).opacity = 0.6;
     }
   });
 
@@ -250,44 +217,33 @@ function WaterfallPhoto({
   };
 
   return (
-    <>
-      {/* Trail particles */}
-      <points ref={trailRef} geometry={trailGeometry} material={trailMaterial} />
+    <group ref={groupRef}>
+      {/* Circular glow halo behind photo */}
+      <mesh ref={glowRef} position={[0, 0, -0.02]}>
+        <circleGeometry args={[Math.max(photoW, photoH) * 0.72, 48]} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={0.1} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
 
-      <group ref={groupRef}>
-        {/* Glow halo */}
-        <mesh ref={glowRef} scale={[1.55, 1.55, 1]} position={[0, 0, -0.02]}>
-          <planeGeometry args={[photoW * 1.35, photoH * 1.35]} />
-          <meshBasicMaterial color={colors[0]} transparent opacity={0.14} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
+      {/* Photo plane */}
+      <mesh onClick={handleClick}>
+        <planeGeometry args={[photoW, photoH]} />
+        <meshBasicMaterial map={texture} transparent opacity={0.98} side={THREE.DoubleSide} depthWrite={false} />
+      </mesh>
 
-        {/* Outer glow (larger, fainter) */}
-        <mesh scale={[2.0, 2.0, 1]} position={[0, 0, -0.03]}>
-          <planeGeometry args={[photoW * 1.15, photoH * 1.15]} />
-          <meshBasicMaterial color={colors[1]} transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-
-        {/* Photo plane */}
-        <mesh onClick={handleClick}>
-          <planeGeometry args={[photoW, photoH]} />
-          <meshBasicMaterial map={texture} transparent opacity={isVideo ? 0.5 : 0.96} side={THREE.DoubleSide} depthWrite={false} />
-        </mesh>
-
-        {/* Video indicator */}
-        {isVideo ? (
-          <mesh position={[0, 0, 0.01]}>
-            <circleGeometry args={[compact ? 0.08 : 0.1, 24]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.85} depthWrite={false} />
+      {/* Video play icon - small triangle */}
+      {isVideo ? (
+        <group position={[photoW * 0.3, -photoH * 0.3, 0.01]}>
+          <mesh>
+            <circleGeometry args={[compact ? 0.1 : 0.12, 24]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.55} depthWrite={false} />
           </mesh>
-        ) : null}
-
-        {/* Subtle border frame */}
-        <mesh scale={[1.04, 1.04, 1]} position={[0, 0, 0.001]}>
-          <planeGeometry args={[photoW, photoH]} />
-          <meshBasicMaterial color={colors[2]} transparent opacity={0.12} depthWrite={false} />
-        </mesh>
-      </group>
-    </>
+          <mesh rotation={[0, 0, 0.15]} position={[0.01, 0, 0.001]}>
+            <coneGeometry args={[0.025, 0.05, 3]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.9} depthWrite={false} />
+          </mesh>
+        </group>
+      ) : null}
+    </group>
   );
 }
 
