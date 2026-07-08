@@ -201,10 +201,6 @@ function SceneContent({
 
 function CenterMark() {
   const group = useRef<THREE.Group>(null);
-  const glowRef = useRef<THREE.Mesh>(null);
-  const ringGroup1 = useRef<THREE.Group>(null);
-  const ringGroup2 = useRef<THREE.Group>(null);
-  const ringGroup3 = useRef<THREE.Group>(null);
   const particleRef = useRef<THREE.Points>(null);
 
   const particlePositions = useMemo(() => {
@@ -230,21 +226,10 @@ function CenterMark() {
     const t = state.clock.elapsedTime;
     if (!group.current) return;
 
-    // Gentle 3D float - not flat rotation
+    // Gentle 3D float
     group.current.position.y = -0.08 + Math.sin(t * 0.4) * 0.06;
     group.current.rotation.x = Math.sin(t * 0.15) * 0.08;
     group.current.rotation.z = Math.cos(t * 0.12) * 0.05;
-
-    // Glow pulse
-    if (glowRef.current) {
-      const mat = glowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = 0.05 + Math.sin(t * 0.7) * 0.02;
-    }
-
-    // Rings rotate independently in 3D
-    if (ringGroup1.current) ringGroup1.current.rotation.y = t * 0.12;
-    if (ringGroup2.current) ringGroup2.current.rotation.y = -t * 0.08;
-    if (ringGroup3.current) ringGroup3.current.rotation.y = t * 0.06;
 
     // Particles slowly orbit
     if (particleRef.current) {
@@ -254,42 +239,12 @@ function CenterMark() {
 
   return (
     <group ref={group} position={[0, -0.08, -0.3]}>
-      {/* Deep glow sphere - 3D depth */}
-      <mesh ref={glowRef}>
-        <sphereGeometry args={[0.9, 24, 16]} />
-        <meshBasicMaterial color="#e8c7ff" transparent opacity={0.05} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
-
-      {/* 3D orbital ring 1 - tilted */}
-      <group ref={ringGroup1} rotation={[0.3, 0, 0.2]}>
-        <mesh>
-          <torusGeometry args={[0.7, 0.008, 8, 64]} />
-          <meshBasicMaterial color="#ff8bd8" transparent opacity={0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-      </group>
-
-      {/* 3D orbital ring 2 - different tilt */}
-      <group ref={ringGroup2} rotation={[-0.5, 0.3, -0.1]}>
-        <mesh>
-          <torusGeometry args={[0.85, 0.006, 8, 64]} />
-          <meshBasicMaterial color="#8ee7ff" transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-      </group>
-
-      {/* 3D orbital ring 3 - vertical tilt */}
-      <group ref={ringGroup3} rotation={[1.2, 0, 0.4]}>
-        <mesh>
-          <torusGeometry args={[0.6, 0.005, 8, 64]} />
-          <meshBasicMaterial color="#ffd18f" transparent opacity={0.06} depthWrite={false} blending={THREE.AdditiveBlending} />
-        </mesh>
-      </group>
-
       {/* Orbiting particles */}
       <points ref={particleRef} geometry={particleGeo}>
         <pointsMaterial size={0.018} color="#ffc0e8" transparent opacity={0.35} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
       </points>
 
-      {/* Brand text - on a slight 3D angle */}
+      {/* Brand text */}
       <Billboard position={[0, -0.48, 0.12]} follow>
         <Text fontSize={0.14} anchorX="center" anchorY="middle" color="#ffe9f8" outlineWidth={0.004} outlineColor="#c06eba" fillOpacity={0.85}>
           {"\u2764 \u946b\u946b"}
