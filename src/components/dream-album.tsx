@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Play, Sparkles, X } from "lucide-react";
+import { Images, Play, Sparkles, X } from "lucide-react";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ThreeMemoryUniverse, type SmallMemoryPlanet, type UniverseMedia } from "@/components/three-memory-universe";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ThreeMemoryUniverse, type MemoryCollection, type SmallMemoryPlanet, type UniverseMedia } from "@/components/three-memory-universe";
+import { getMemoryRecord, type MemoryRecord } from "@/data/memory-records";
 
 const COPY = {
   heart: "\u2764",
@@ -18,8 +19,8 @@ const COPY = {
 
 export function DreamAlbum() {
   const [exploring, setExploring] = useState(false);
-  const [preview, setPreview] = useState<UniverseMedia | null>(null);
-  const [detailPlanet, setDetailPlanet] = useState<SmallMemoryPlanet | null>(null);
+  const [preview, setPreview] = useState<{ media: UniverseMedia; record: MemoryRecord } | null>(null);
+  const [collection, setCollection] = useState<MemoryCollection | null>(null);
   const bgmRef = useRef<HTMLAudioElement | null>(null);
   const floaters = useMemo(
     () =>
@@ -34,19 +35,6 @@ export function DreamAlbum() {
     [],
   );
 
-  const handleSmallPlanetOpen = useCallback((planet: SmallMemoryPlanet) => {
-    setDetailPlanet(planet);
-    setPreview(null);
-  }, []);
-
-  const handleDetailClose = useCallback(() => {
-    setDetailPlanet(null);
-  }, []);
-
-  const handlePreviewFromDetail = useCallback((media: UniverseMedia) => {
-    setPreview(media);
-  }, []);
-
   /* Background music – start on first explore */
   useEffect(() => {
     if (exploring && !bgmRef.current) {
@@ -58,10 +46,19 @@ export function DreamAlbum() {
     }
   }, [exploring]);
 
+  useEffect(() => {
+    const updateVolume = (event: Event) => {
+      if (!bgmRef.current) return;
+      bgmRef.current.volume = (event as CustomEvent<boolean>).detail ? 0.12 : 0.35;
+    };
+    window.addEventListener("xinxin-diary-reading", updateVolume);
+    return () => window.removeEventListener("xinxin-diary-reading", updateVolume);
+  }, []);
+
   return (
     <main className="universe-vignette relative h-[100svh] w-screen overflow-hidden text-white">
       <FloatingAtmosphere floaters={floaters} dimmed={exploring} />
-      <ThreeMemoryUniverse exploring={exploring} onPreview={setPreview} onSmallPlanetOpen={handleSmallPlanetOpen} onDetailClose={handleDetailClose} detailOpen={Boolean(detailPlanet)} />
+      <ThreeMemoryUniverse exploring={exploring} onPreview={(media, record) => setPreview({ media, record: record ?? getMemoryRecord(media, "记忆星球") })} onOpenCollection={setCollection} />
 
       <AnimatePresence>
         {!exploring ? (
@@ -71,17 +68,16 @@ export function DreamAlbum() {
             key="hint"
             className="pointer-events-none absolute inset-x-0 bottom-6 z-10 px-5 text-center text-[10px] tracking-[0.18em] text-pink-50/60 sm:text-[11px]"
             initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: (preview || detailPlanet) ? 0 : 1, y: 0 }}
+            animate={{ opacity: preview ? 0 : 1, y: 0 }}
             exit={{ opacity: 0 }}
           >
-            DRAG · PINCH · TAP PLANET
+            DRAG · PINCH · TAP STAR
           </motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>{detailPlanet ? <PlanetDetailPanel planet={detailPlanet} onClose={handleDetailClose} onPreview={handlePreviewFromDetail} /> : null}</AnimatePresence>
-
-      <AnimatePresence>{preview ? <MediaPreview media={preview} onClose={() => setPreview(null)} /> : null}</AnimatePresence>
+      <AnimatePresence>{collection ? <CollectionPreview collection={collection} onClose={() => setCollection(null)} onPreview={(media) => { setCollection(null); setPreview({ media, record: getMemoryRecord(media, collection.title) }); }} /> : null}</AnimatePresence>
+      <AnimatePresence>{preview ? <MediaPreview media={preview.media} record={preview.record} onClose={() => setPreview(null)} /> : null}</AnimatePresence>
     </main>
   );
 }
@@ -178,7 +174,7 @@ function IntroHero({ onStart }: { onStart: () => void }) {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.24, duration: 0.8 }}
       >
-        Every Planet Is A Memory
+        Every Star Is A Memory
       </motion.p>
       <motion.button
         type="button"
@@ -195,23 +191,58 @@ function IntroHero({ onStart }: { onStart: () => void }) {
   );
 }
 
-function MediaPreview({ media, onClose }: { media: UniverseMedia; onClose: () => void }) {
+function CollectionPreview({ collection, onClose, onPreview }: { collection: MemoryCollection; onClose: () => void; onPreview: (media: UniverseMedia) => void }) {
+  const items = collection.items;
+
+  return (
+    <motion.div className="absolute inset-0 z-[55] bg-[#05010b]/95 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.section className="mx-auto flex h-[100svh] w-full max-w-5xl flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}>
+        <header className="flex shrink-0 items-start justify-between border-b border-white/10 px-4 py-5 sm:px-8 sm:py-6">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[10px] tracking-[0.2em] text-pink-100/55"><Images size={13} /> MEMORY COLLECTION</p>
+            <h2 className="mt-1 truncate text-xl tracking-[0.08em] text-white sm:text-2xl">{collection.title}</h2>
+            <p className="mt-1 text-xs text-pink-100/48">{collection.subtitle} · {items.length} 个记忆片段</p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="关闭整组预览" className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/12 bg-white/8 text-white/80 active:scale-95"><X size={17} /></button>
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-8 sm:py-6">
+          <div className="grid grid-cols-2 gap-3 pb-8 sm:grid-cols-3 sm:gap-4">
+            {items.map((item, index) => (
+              <button key={item.id} type="button" onClick={() => onPreview(item)} className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-white/10 bg-[#160b20] text-left shadow-[0_10px_32px_rgba(0,0,0,0.32)] transition active:scale-[0.98] sm:rounded-2xl">
+                {item.type === "image" ? <Image src={item.url} alt={`记忆 ${index + 1}`} fill sizes="(max-width: 640px) 50vw, 33vw" className="object-cover transition duration-500 group-hover:scale-105" /> : item.type === "video" ? <video src={item.url} muted playsInline preload="metadata" className="h-full w-full object-cover" /> : <span className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_center,_rgba(255,174,224,0.22),_transparent_62%)] px-5 text-center text-sm leading-7 text-pink-50">{item.text}</span>}
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 to-transparent" />
+                <span className="pointer-events-none absolute bottom-3 left-3 text-[10px] tracking-[0.14em] text-white/80">{item.type === "video" ? "VIDEO" : item.type === "text" ? "NOTE" : `MEMORY ${String(index + 1).padStart(2, "0")}`}</span>
+                {item.type === "video" ? <span className="pointer-events-none absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/35 text-white backdrop-blur-sm"><Play size={13} fill="currentColor" /></span> : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      </motion.section>
+    </motion.div>
+  );
+}
+
+function MediaPreview({ media, record, onClose }: { media: UniverseMedia; record: MemoryRecord; onClose: () => void }) {
   return (
     <motion.div className="absolute inset-0 z-50 flex items-center justify-center bg-black/78 p-4 backdrop-blur-lg" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <button type="button" onClick={onClose} className="absolute right-5 top-5 grid h-11 w-11 place-items-center rounded-full border border-white/16 bg-white/12 text-white" aria-label={COPY.closePreview}>
         <X size={19} />
       </button>
-      <motion.div className="relative max-h-[82svh] w-full max-w-3xl overflow-hidden rounded-[28px]" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 18 }} onClick={(event) => event.stopPropagation()}>
-        {media.type === "image" ? (
-          <Image src={media.url} alt="" width={1200} height={1600} className="max-h-[82svh] w-full object-contain" />
-        ) : (
-          <div className="relative">
-            <video src={media.url} className="max-h-[82svh] w-full bg-black" controls autoPlay playsInline />
-            <span className="pointer-events-none absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/16 text-white backdrop-blur-md">
-              <Play size={17} fill="currentColor" />
-            </span>
-          </div>
-        )}
+      <motion.div className="relative w-full max-w-3xl overflow-hidden rounded-[22px] border border-white/12 bg-[#150a20]/86 shadow-[0_22px_80px_rgba(0,0,0,0.52)]" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 18 }} onClick={(event) => event.stopPropagation()}>
+        <div className="max-h-[64svh] bg-black/45">
+          {media.type === "image" ? (
+            <Image src={media.url} alt="" width={1200} height={1600} className="max-h-[64svh] w-full object-contain" />
+          ) : media.type === "video" ? (
+            <div className="relative"><video src={media.url} className="max-h-[64svh] w-full bg-black" controls autoPlay playsInline /><span className="pointer-events-none absolute left-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/16 text-white backdrop-blur-md"><Play size={17} fill="currentColor" /></span></div>
+          ) : (
+            <div className="flex min-h-[220px] items-center justify-center px-8 py-12 text-center text-lg leading-relaxed text-pink-50">{media.text}</div>
+          )}
+        </div>
+        <div className="border-t border-white/10 px-5 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-center justify-between gap-4"><p className="text-sm font-medium tracking-[0.08em] text-pink-50">{media.type === "video" ? "动态记忆" : "记忆片段"}</p><p className="text-xs tracking-[0.12em] text-pink-200/78">{record.date}</p></div>
+          <p className="mt-3 text-sm leading-relaxed text-white/90">{record.activity}</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-pink-100/62 sm:text-sm">{record.note}</p>
+        </div>
       </motion.div>
     </motion.div>
   );
