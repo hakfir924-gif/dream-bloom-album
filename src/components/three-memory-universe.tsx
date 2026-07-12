@@ -96,6 +96,7 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
   const [diaries, setDiaries] = useState<LocalDiaryEntry[]>([]);
   const [activeMemoryId, setActiveMemoryId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(true);
+  const [isTablet, setIsTablet] = useState(false);
   const [shipMenuOpen, setShipMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [diaryOpen, setDiaryOpen] = useState(false);
@@ -129,7 +130,7 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
 
   const nodes = useMemo(() => (manifest ? buildMemoryNodes(manifest, isMobile, localPlanets) : []), [isMobile, localPlanets, manifest]);
   const activeMemory = nodes.find((node) => node.id === activeMemoryId) ?? null;
-  const fxCompact = isMobile || reducedFx;
+  const fxCompact = isMobile || isTablet || reducedFx;
 
   const selectMemory = (id: string) => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
@@ -155,7 +156,12 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
   };
 
   useEffect(() => {
-    const update = () => setIsMobile(window.innerWidth < 820 || window.matchMedia("(pointer: coarse)").matches);
+    const update = () => {
+      const w = window.innerWidth;
+      const coarse = window.matchMedia("(pointer: coarse)").matches;
+      setIsMobile(w < 640 || (w < 820 && coarse));
+      setIsTablet(w >= 640 && w < 1200);
+    };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
@@ -175,7 +181,7 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
       <Canvas
         className="h-full w-full touch-none"
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        dpr={isMobile ? [1, 2] : [1, 1.45]}
+        dpr={isMobile ? [1, 1.5] : isTablet ? [1, 1.75] : [1, 1.45]}
       >
         <PerformanceMonitor flipflops={2} onDecline={() => setReducedFx(true)} onFallback={() => setReducedFx(true)} />
         <AdaptiveDpr pixelated />
@@ -186,8 +192,8 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
         <pointLight position={[0, 0, 0]} color="#ff91d7" intensity={5.8} distance={15} />
         <pointLight position={[-5.2, 3.8, 3.2]} color="#8ee7ff" intensity={3.4} distance={16} />
         <pointLight position={[4.4, -2.8, -3.5]} color="#c4a2ff" intensity={2.6} distance={18} />
-        <Stars radius={95} depth={62} count={isMobile ? 900 : 1900} factor={isMobile ? 1.15 : 1.45} saturation={0.45} fade speed={0.014} />
-        <Stars radius={70} depth={48} count={isMobile ? 950 : 2100} factor={isMobile ? 1.9 : 2.55} saturation={0.9} fade speed={0.032} />
+        <Stars radius={95} depth={62} count={isMobile ? 500 : isTablet ? 1200 : 1900} factor={isMobile ? 1.15 : 1.45} saturation={0.45} fade speed={0.014} />
+        <Stars radius={70} depth={48} count={isMobile ? 600 : isTablet ? 1400 : 2100} factor={isMobile ? 1.9 : 2.55} saturation={0.9} fade speed={0.032} />
         <NebulaClouds compact={fxCompact} active={Boolean(activeMemoryId)} flightRef={flightIntensity} />
         <DistantStarClusters compact={fxCompact} active={Boolean(activeMemoryId)} />
         <YearConstellations dimmed={Boolean(activeMemoryId)} />

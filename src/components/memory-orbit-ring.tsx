@@ -25,15 +25,15 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - t, 3);
 }
 
-function memoryWaterfallPosition(index: number, total: number, flow: number, compact: boolean, lane: number, target: THREE.Vector3) {
-  const columns = compact ? 3 : 6;
+function memoryWaterfallPosition(index: number, total: number, flow: number, deviceMode: "mobile" | "tablet" | "desktop", lane: number, target: THREE.Vector3) {
+  const columns = deviceMode === "mobile" ? 3 : deviceMode === "tablet" ? 4 : 6;
   const rows = Math.ceil(total / columns);
   const row = Math.floor(index / columns);
   const column = index % columns;
   const phase = (row + flow + column * 0.17) % rows;
-  const xLimit = compact ? 1.1 : 3.32;
-  const yTop = compact ? 1.8 : 3.46;
-  const yBottom = compact ? -1.8 : -3.52;
+  const xLimit = deviceMode === "mobile" ? 1.1 : deviceMode === "tablet" ? 1.8 : 3.32;
+  const yTop = deviceMode === "mobile" ? 1.8 : deviceMode === "tablet" ? 2.4 : 3.46;
+  const yBottom = deviceMode === "mobile" ? -1.8 : deviceMode === "tablet" ? -2.4 : -3.52;
   const columnProgress = column / (columns - 1);
   const rowProgress = rows === 1 ? 0.5 : phase / (rows - 1);
 
@@ -45,8 +45,8 @@ function memoryWaterfallPosition(index: number, total: number, flow: number, com
   return target;
 }
 
-function isBackRiverSlot(index: number, compact: boolean) {
-  return compact ? index % 5 === 1 : index % 5 === 2;
+function isBackRiverSlot(index: number, deviceMode: "mobile" | "tablet" | "desktop") {
+  return deviceMode === "mobile" ? index % 5 === 1 : deviceMode === "tablet" ? index % 5 === 2 : index % 5 === 2;
 }
 
 export function MemoryOrbitRing({
@@ -68,7 +68,8 @@ export function MemoryOrbitRing({
   const flowProgress = useRef(0);
   const flowStartedAt = useRef(0);
   const colors = THEME_COLORS[memory.theme];
-  const slotCount = Math.min(compact ? 12 : 30, memory.items.length);
+  const deviceMode: "mobile" | "tablet" | "desktop" = compact ? "mobile" : (typeof window !== "undefined" && window.innerWidth < 1200) ? "tablet" : "desktop";
+  const slotCount = Math.min(deviceMode === "mobile" ? 12 : deviceMode === "tablet" ? 18 : 30, memory.items.length);
   const videoPosters = useMemo(
     () => memory.items.filter((item) => item.type === "image").map((item) => item.thumb ?? item.url),
     [memory.items],
@@ -104,7 +105,7 @@ export function MemoryOrbitRing({
 
   return (
     <group ref={group} position={origin}>
-      <MemoryBandDust colors={colors} compact={compact} progressRef={release} />
+      <MemoryBandDust colors={colors} deviceMode={deviceMode} progressRef={release} />
       {Array.from({ length: slotCount }, (_, index) => {
         const media = memory.items[index % memory.items.length];
         const posterSource = videoPosters.length > 0 ? videoPosters[(index * 7 + 3) % videoPosters.length] : memory.cover ?? "/universe-media/thumbs/001.jpg";
@@ -115,6 +116,7 @@ export function MemoryOrbitRing({
             index={index}
             total={slotCount}
             compact={compact}
+            deviceMode={deviceMode}
             colors={colors}
             posterSource={posterSource}
             progressRef={release}
@@ -133,6 +135,7 @@ function OrbitMemoryFragment({
   index,
   total,
   compact,
+  deviceMode,
   colors,
   posterSource,
   progressRef,
@@ -144,6 +147,7 @@ function OrbitMemoryFragment({
   index: number;
   total: number;
   compact: boolean;
+  deviceMode: "mobile" | "tablet" | "desktop";
   colors: [string, string, string];
   posterSource: string;
   progressRef: MutableRefObject<number>;
@@ -157,15 +161,15 @@ function OrbitMemoryFragment({
   const frameMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const isVideo = media.type === "video";
   const isText = media.type === "text";
-  const width = compact ? 0.58 : 0.72;
-  const height = compact ? 0.78 : 1.08;
+  const width = deviceMode === "mobile" ? 0.58 : deviceMode === "tablet" ? 0.65 : 0.72;
+  const height = deviceMode === "mobile" ? 0.78 : deviceMode === "tablet" ? 0.88 : 1.08;
   const layout = useMemo(() => {
-    const lane = isBackRiverSlot(index, compact) ? 1 : 0;
+    const lane = isBackRiverSlot(index, deviceMode) ? 1 : 0;
     return {
       lane,
       baseQuaternion: new THREE.Quaternion().setFromEuler(new THREE.Euler((seed(index, 5) - 0.5) * 0.1, 0, (seed(index, 9) - 0.5) * 0.12)),
     };
-  }, [compact, index]);
+  }, [deviceMode, index]);
   const targetQuaternion = useRef(layout.baseQuaternion.clone());
   const cameraQuaternion = useRef(new THREE.Quaternion());
   const parentQuaternion = useRef(new THREE.Quaternion());
@@ -182,7 +186,7 @@ function OrbitMemoryFragment({
   useFrame((state) => {
     if (!group.current) return;
     const releaseProgress = easeOutCubic((progressRef.current - index * 0.022) / 0.56);
-    const columns = compact ? 4 : 6;
+    const columns = deviceMode === "mobile" ? 3 : deviceMode === "tablet" ? 4 : 6;
     const rows = Math.ceil(total / columns);
     const row = Math.floor(index / columns);
     const column = index % columns;
@@ -190,7 +194,7 @@ function OrbitMemoryFragment({
     const streamOpacity = THREE.MathUtils.smoothstep(travel, 0, 0.24) * (1 - THREE.MathUtils.smoothstep(travel, rows - 0.42, rows - 0.04));
     const local = releaseProgress * streamOpacity;
     const float = Math.sin(state.clock.elapsedTime * 0.56 + index) * 0.02 * local;
-    memoryWaterfallPosition(index, total, flowProgressRef.current, compact, layout.lane, orbitPosition.current);
+    memoryWaterfallPosition(index, total, flowProgressRef.current, deviceMode, layout.lane, orbitPosition.current);
     group.current.position.copy(orbitPosition.current).multiplyScalar(releaseProgress);
     group.current.position.y += float;
     group.current.position.z += Math.cos(state.clock.elapsedTime * 0.32 + index * 0.5) * 0.014 * local;
@@ -417,22 +421,22 @@ function VideoPosterSurface({
   return <meshBasicMaterial ref={materialRef} map={texture} transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} />;
 }
 
-function MemoryBandDust({ colors, compact, progressRef }: { colors: [string, string, string]; compact: boolean; progressRef: MutableRefObject<number> }) {
+function MemoryBandDust({ colors, deviceMode, progressRef }: { colors: [string, string, string]; deviceMode: "mobile" | "tablet" | "desktop"; progressRef: MutableRefObject<number> }) {
   const points = useRef<THREE.Points>(null);
-  const count = compact ? 150 : 240;
-  const wallSlots = compact ? 20 : 30;
+  const count = deviceMode === "mobile" ? 80 : deviceMode === "tablet" ? 160 : 240;
+  const wallSlots = deviceMode === "mobile" ? 12 : deviceMode === "tablet" ? 20 : 30;
   const positions = useMemo(() => {
     const data = new Float32Array(count * 3);
     for (let index = 0; index < count; index += 1) {
       const lane = index % 2;
-      const jitter = (seed(index, 24) - 0.5) * (compact ? 0.12 : 0.18);
-      const position = memoryWaterfallPosition(index % wallSlots, wallSlots, 0, compact, lane, new THREE.Vector3());
+      const jitter = (seed(index, 24) - 0.5) * (deviceMode === "mobile" ? 0.08 : deviceMode === "tablet" ? 0.14 : 0.18);
+      const position = memoryWaterfallPosition(index % wallSlots, wallSlots, 0, deviceMode, lane, new THREE.Vector3());
       data[index * 3] = position.x + jitter;
       data[index * 3 + 1] = position.y + (seed(index, 25) - 0.5) * 0.13;
       data[index * 3 + 2] = position.z + (seed(index, 26) - 0.5) * 0.12;
     }
     return data;
-  }, [compact, count, wallSlots]);
+  }, [deviceMode, count, wallSlots]);
 
   useFrame((state) => {
     if (!points.current) return;
@@ -445,7 +449,7 @@ function MemoryBandDust({ colors, compact, progressRef }: { colors: [string, str
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
-      <pointsMaterial size={compact ? 0.022 : 0.028} color={colors[1]} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <pointsMaterial size={deviceMode === "mobile" ? 0.018 : deviceMode === "tablet" ? 0.024 : 0.028} color={colors[1]} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} />
     </points>
   );
 }
