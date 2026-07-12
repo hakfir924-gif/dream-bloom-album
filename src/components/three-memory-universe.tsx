@@ -174,8 +174,8 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
     <div className="absolute inset-0">
       <Canvas
         className="h-full w-full touch-none"
-        gl={{ antialias: !isMobile, alpha: true, powerPreference: "high-performance" }}
-        dpr={isMobile ? [0.75, 1] : [1, 1.45]}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        dpr={isMobile ? [1, 2] : [1, 1.45]}
       >
         <PerformanceMonitor flipflops={2} onDecline={() => setReducedFx(true)} onFallback={() => setReducedFx(true)} />
         <AdaptiveDpr pixelated />

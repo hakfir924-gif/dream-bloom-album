@@ -26,14 +26,14 @@ function easeOutCubic(value: number) {
 }
 
 function memoryWaterfallPosition(index: number, total: number, flow: number, compact: boolean, lane: number, target: THREE.Vector3) {
-  const columns = compact ? 4 : 6;
+  const columns = compact ? 3 : 6;
   const rows = Math.ceil(total / columns);
   const row = Math.floor(index / columns);
   const column = index % columns;
   const phase = (row + flow + column * 0.17) % rows;
-  const xLimit = compact ? 1.72 : 3.32;
-  const yTop = compact ? 2.4 : 3.46;
-  const yBottom = compact ? -2.46 : -3.52;
+  const xLimit = compact ? 1.1 : 3.32;
+  const yTop = compact ? 1.8 : 3.46;
+  const yBottom = compact ? -1.8 : -3.52;
   const columnProgress = column / (columns - 1);
   const rowProgress = rows === 1 ? 0.5 : phase / (rows - 1);
 
@@ -68,7 +68,7 @@ export function MemoryOrbitRing({
   const flowProgress = useRef(0);
   const flowStartedAt = useRef(0);
   const colors = THEME_COLORS[memory.theme];
-  const slotCount = Math.min(compact ? 20 : 30, memory.items.length);
+  const slotCount = Math.min(compact ? 12 : 30, memory.items.length);
   const videoPosters = useMemo(
     () => memory.items.filter((item) => item.type === "image").map((item) => item.thumb ?? item.url),
     [memory.items],
@@ -157,8 +157,8 @@ function OrbitMemoryFragment({
   const frameMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const isVideo = media.type === "video";
   const isText = media.type === "text";
-  const width = compact ? 0.7 : 0.72;
-  const height = compact ? 0.96 : 1.08;
+  const width = compact ? 0.58 : 0.72;
+  const height = compact ? 0.78 : 1.08;
   const layout = useMemo(() => {
     const lane = isBackRiverSlot(index, compact) ? 1 : 0;
     return {
@@ -292,7 +292,7 @@ function ImageSurface({ source, materialRef, compact }: { source: string; materi
 
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = compact ? 2 : 4;
+    texture.anisotropy = compact ? 4 : 8;
     texture.wrapS = THREE.RepeatWrapping;
     texture.repeat.x = -1;
     texture.offset.x = 1;
@@ -394,7 +394,7 @@ function VideoPosterSurface({
 
   useEffect(() => {
     fallbackTexture.colorSpace = THREE.SRGBColorSpace;
-    fallbackTexture.anisotropy = compact ? 2 : 4;
+    fallbackTexture.anisotropy = compact ? 4 : 8;
     fallbackTexture.wrapS = THREE.RepeatWrapping;
     fallbackTexture.repeat.x = -1;
     fallbackTexture.offset.x = 1;
