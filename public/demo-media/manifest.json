@@ -1,0 +1,688 @@
+{
+  "generatedAt": "2026-07-12T19:47:09.662308+00:00",
+  "counts": {
+    "total": 36,
+    "images": 36,
+    "videos": 0,
+    "smallGroups": 6
+  },
+  "smallPlanets": [
+    {
+      "id": "demo-first-breeze",
+      "title": "初见海风",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/sea/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-sea-01",
+          "type": "image",
+          "url": "/demo-media/sea/files/01.jpg",
+          "thumb": "/demo-media/sea/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-02",
+          "type": "image",
+          "url": "/demo-media/sea/files/02.jpg",
+          "thumb": "/demo-media/sea/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-03",
+          "type": "image",
+          "url": "/demo-media/sea/files/03.jpg",
+          "thumb": "/demo-media/sea/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-04",
+          "type": "image",
+          "url": "/demo-media/sea/files/04.jpg",
+          "thumb": "/demo-media/sea/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        }
+      ]
+    },
+    {
+      "id": "demo-pink-sunset",
+      "title": "粉色落日",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/sea/thumbs/09.jpg",
+      "items": [
+        {
+          "id": "demo-sea-09",
+          "type": "image",
+          "url": "/demo-media/sea/files/09.jpg",
+          "thumb": "/demo-media/sea/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-10",
+          "type": "image",
+          "url": "/demo-media/sea/files/10.jpg",
+          "thumb": "/demo-media/sea/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-11",
+          "type": "image",
+          "url": "/demo-media/sea/files/11.jpg",
+          "thumb": "/demo-media/sea/thumbs/11.jpg",
+          "originalName": "11.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-12",
+          "type": "image",
+          "url": "/demo-media/sea/files/12.jpg",
+          "thumb": "/demo-media/sea/thumbs/12.jpg",
+          "originalName": "12.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        }
+      ]
+    },
+    {
+      "id": "demo-city-walk",
+      "title": "灯下漫步",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/night/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-night-01",
+          "type": "image",
+          "url": "/demo-media/night/files/01.jpg",
+          "thumb": "/demo-media/night/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-02",
+          "type": "image",
+          "url": "/demo-media/night/files/02.jpg",
+          "thumb": "/demo-media/night/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-03",
+          "type": "image",
+          "url": "/demo-media/night/files/03.jpg",
+          "thumb": "/demo-media/night/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-04",
+          "type": "image",
+          "url": "/demo-media/night/files/04.jpg",
+          "thumb": "/demo-media/night/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        }
+      ]
+    },
+    {
+      "id": "demo-fireworks",
+      "title": "烟火入夜",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/night/thumbs/07.jpg",
+      "items": [
+        {
+          "id": "demo-night-07",
+          "type": "image",
+          "url": "/demo-media/night/files/07.jpg",
+          "thumb": "/demo-media/night/thumbs/07.jpg",
+          "originalName": "07.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-08",
+          "type": "image",
+          "url": "/demo-media/night/files/08.jpg",
+          "thumb": "/demo-media/night/thumbs/08.jpg",
+          "originalName": "08.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-09",
+          "type": "image",
+          "url": "/demo-media/night/files/09.jpg",
+          "thumb": "/demo-media/night/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-10",
+          "type": "image",
+          "url": "/demo-media/night/files/10.jpg",
+          "thumb": "/demo-media/night/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        }
+      ]
+    },
+    {
+      "id": "demo-birthday",
+      "title": "生日愿望",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/birthday/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-birthday-01",
+          "type": "image",
+          "url": "/demo-media/birthday/files/01.jpg",
+          "thumb": "/demo-media/birthday/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-02",
+          "type": "image",
+          "url": "/demo-media/birthday/files/02.jpg",
+          "thumb": "/demo-media/birthday/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-03",
+          "type": "image",
+          "url": "/demo-media/birthday/files/03.jpg",
+          "thumb": "/demo-media/birthday/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-04",
+          "type": "image",
+          "url": "/demo-media/birthday/files/04.jpg",
+          "thumb": "/demo-media/birthday/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        }
+      ]
+    },
+    {
+      "id": "demo-warm-room",
+      "title": "房间微光",
+      "subtitle": "4 Photos",
+      "cover": "/demo-media/birthday/thumbs/09.jpg",
+      "items": [
+        {
+          "id": "demo-birthday-09",
+          "type": "image",
+          "url": "/demo-media/birthday/files/09.jpg",
+          "thumb": "/demo-media/birthday/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-10",
+          "type": "image",
+          "url": "/demo-media/birthday/files/10.jpg",
+          "thumb": "/demo-media/birthday/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-11",
+          "type": "image",
+          "url": "/demo-media/birthday/files/11.jpg",
+          "thumb": "/demo-media/birthday/thumbs/11.jpg",
+          "originalName": "11.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-12",
+          "type": "image",
+          "url": "/demo-media/birthday/files/12.jpg",
+          "thumb": "/demo-media/birthday/thumbs/12.jpg",
+          "originalName": "12.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        }
+      ]
+    }
+  ],
+  "bigPlanets": [
+    {
+      "id": "photos",
+      "title": "海风来信",
+      "subtitle": "SUMMER LETTERS · 12 Photos",
+      "theme": "cyan",
+      "cover": "/demo-media/sea/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-sea-01",
+          "type": "image",
+          "url": "/demo-media/sea/files/01.jpg",
+          "thumb": "/demo-media/sea/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-02",
+          "type": "image",
+          "url": "/demo-media/sea/files/02.jpg",
+          "thumb": "/demo-media/sea/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-03",
+          "type": "image",
+          "url": "/demo-media/sea/files/03.jpg",
+          "thumb": "/demo-media/sea/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-04",
+          "type": "image",
+          "url": "/demo-media/sea/files/04.jpg",
+          "thumb": "/demo-media/sea/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-05",
+          "type": "image",
+          "url": "/demo-media/sea/files/05.jpg",
+          "thumb": "/demo-media/sea/thumbs/05.jpg",
+          "originalName": "05.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-06",
+          "type": "image",
+          "url": "/demo-media/sea/files/06.jpg",
+          "thumb": "/demo-media/sea/thumbs/06.jpg",
+          "originalName": "06.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-07",
+          "type": "image",
+          "url": "/demo-media/sea/files/07.jpg",
+          "thumb": "/demo-media/sea/thumbs/07.jpg",
+          "originalName": "07.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-08",
+          "type": "image",
+          "url": "/demo-media/sea/files/08.jpg",
+          "thumb": "/demo-media/sea/thumbs/08.jpg",
+          "originalName": "08.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-09",
+          "type": "image",
+          "url": "/demo-media/sea/files/09.jpg",
+          "thumb": "/demo-media/sea/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-10",
+          "type": "image",
+          "url": "/demo-media/sea/files/10.jpg",
+          "thumb": "/demo-media/sea/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-11",
+          "type": "image",
+          "url": "/demo-media/sea/files/11.jpg",
+          "thumb": "/demo-media/sea/thumbs/11.jpg",
+          "originalName": "11.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        },
+        {
+          "id": "demo-sea-12",
+          "type": "image",
+          "url": "/demo-media/sea/files/12.jpg",
+          "thumb": "/demo-media/sea/thumbs/12.jpg",
+          "originalName": "12.jpg",
+          "date": "2025.08.16",
+          "location": "海边",
+          "note": "风从海面吹来，那天的每一束光都很温柔。"
+        }
+      ]
+    },
+    {
+      "id": "motion",
+      "title": "长夜微光",
+      "subtitle": "CITY AFTERGLOW · 12 Photos",
+      "theme": "pink",
+      "cover": "/demo-media/night/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-night-01",
+          "type": "image",
+          "url": "/demo-media/night/files/01.jpg",
+          "thumb": "/demo-media/night/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-02",
+          "type": "image",
+          "url": "/demo-media/night/files/02.jpg",
+          "thumb": "/demo-media/night/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-03",
+          "type": "image",
+          "url": "/demo-media/night/files/03.jpg",
+          "thumb": "/demo-media/night/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-04",
+          "type": "image",
+          "url": "/demo-media/night/files/04.jpg",
+          "thumb": "/demo-media/night/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-05",
+          "type": "image",
+          "url": "/demo-media/night/files/05.jpg",
+          "thumb": "/demo-media/night/thumbs/05.jpg",
+          "originalName": "05.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-06",
+          "type": "image",
+          "url": "/demo-media/night/files/06.jpg",
+          "thumb": "/demo-media/night/thumbs/06.jpg",
+          "originalName": "06.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-07",
+          "type": "image",
+          "url": "/demo-media/night/files/07.jpg",
+          "thumb": "/demo-media/night/thumbs/07.jpg",
+          "originalName": "07.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-08",
+          "type": "image",
+          "url": "/demo-media/night/files/08.jpg",
+          "thumb": "/demo-media/night/thumbs/08.jpg",
+          "originalName": "08.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-09",
+          "type": "image",
+          "url": "/demo-media/night/files/09.jpg",
+          "thumb": "/demo-media/night/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-10",
+          "type": "image",
+          "url": "/demo-media/night/files/10.jpg",
+          "thumb": "/demo-media/night/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-11",
+          "type": "image",
+          "url": "/demo-media/night/files/11.jpg",
+          "thumb": "/demo-media/night/thumbs/11.jpg",
+          "originalName": "11.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        },
+        {
+          "id": "demo-night-12",
+          "type": "image",
+          "url": "/demo-media/night/files/12.jpg",
+          "thumb": "/demo-media/night/thumbs/12.jpg",
+          "originalName": "12.jpg",
+          "date": "2025.10.03",
+          "location": "城市夜晚",
+          "note": "我们沿着灯火慢慢走，整座城市像一场未醒的梦。"
+        }
+      ]
+    },
+    {
+      "id": "best",
+      "title": "花与愿望",
+      "subtitle": "A WISH IN BLOOM · 12 Photos",
+      "theme": "gold",
+      "cover": "/demo-media/birthday/thumbs/01.jpg",
+      "items": [
+        {
+          "id": "demo-birthday-01",
+          "type": "image",
+          "url": "/demo-media/birthday/files/01.jpg",
+          "thumb": "/demo-media/birthday/thumbs/01.jpg",
+          "originalName": "01.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-02",
+          "type": "image",
+          "url": "/demo-media/birthday/files/02.jpg",
+          "thumb": "/demo-media/birthday/thumbs/02.jpg",
+          "originalName": "02.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-03",
+          "type": "image",
+          "url": "/demo-media/birthday/files/03.jpg",
+          "thumb": "/demo-media/birthday/thumbs/03.jpg",
+          "originalName": "03.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-04",
+          "type": "image",
+          "url": "/demo-media/birthday/files/04.jpg",
+          "thumb": "/demo-media/birthday/thumbs/04.jpg",
+          "originalName": "04.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-05",
+          "type": "image",
+          "url": "/demo-media/birthday/files/05.jpg",
+          "thumb": "/demo-media/birthday/thumbs/05.jpg",
+          "originalName": "05.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-06",
+          "type": "image",
+          "url": "/demo-media/birthday/files/06.jpg",
+          "thumb": "/demo-media/birthday/thumbs/06.jpg",
+          "originalName": "06.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-07",
+          "type": "image",
+          "url": "/demo-media/birthday/files/07.jpg",
+          "thumb": "/demo-media/birthday/thumbs/07.jpg",
+          "originalName": "07.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-08",
+          "type": "image",
+          "url": "/demo-media/birthday/files/08.jpg",
+          "thumb": "/demo-media/birthday/thumbs/08.jpg",
+          "originalName": "08.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-09",
+          "type": "image",
+          "url": "/demo-media/birthday/files/09.jpg",
+          "thumb": "/demo-media/birthday/thumbs/09.jpg",
+          "originalName": "09.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-10",
+          "type": "image",
+          "url": "/demo-media/birthday/files/10.jpg",
+          "thumb": "/demo-media/birthday/thumbs/10.jpg",
+          "originalName": "10.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-11",
+          "type": "image",
+          "url": "/demo-media/birthday/files/11.jpg",
+          "thumb": "/demo-media/birthday/thumbs/11.jpg",
+          "originalName": "11.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        },
+        {
+          "id": "demo-birthday-12",
+          "type": "image",
+          "url": "/demo-media/birthday/files/12.jpg",
+          "thumb": "/demo-media/birthday/thumbs/12.jpg",
+          "originalName": "12.jpg",
+          "date": "2026.02.14",
+          "location": "温暖房间",
+          "note": "烛光亮起的时候，所有平凡瞬间都有了名字。"
+        }
+      ]
+    }
+  ]
+}

@@ -1,20 +1,24 @@
 "use client";
 
-import { AdaptiveDpr, Billboard, OrbitControls, PerformanceMonitor, PerspectiveCamera, Stars, Text, useTexture } from "@react-three/drei";
+import { AdaptiveDpr, Billboard, CameraControls, PerformanceMonitor, PerspectiveCamera, Stars, Text, useTexture } from "@react-three/drei";
+import type { CameraControls as CameraControlsImpl } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, Noise, Vignette } from "@react-three/postprocessing";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
-import type { OrbitControls as OrbitControlsType } from "three-stdlib";
 import { MemoryOrbitRing } from "@/components/memory-orbit-ring";
 import type { MemoryRecord } from "@/data/memory-records";
 import { MemoryPlanetGroup } from "@/components/memory-planet-group";
-import { deleteLocalDiary, loadLocalDiaries, loadLocalPlanets, seedDemoDiaries, type DiaryMood, type LocalDiaryEntry, type LocalMemoryPlanet } from "@/data/local-memory-store";
+import { ChroniclePlanet } from "@/components/chronicle-planet";
+import { loadLocalDiaries, loadLocalPlanets, seedDemoDiaries, type DiaryMood, type LocalDiaryEntry, type LocalMemoryPlanet } from "@/data/local-memory-store";
 import { CreateMemorySheet } from "@/components/create-memory-sheet";
 import { CreateDiarySheet } from "@/components/create-diary-sheet";
 import { DiaryReader } from "@/components/diary-reader";
-import { StarCalendar } from "@/components/star-calendar";
+import { CinematicGalaxy } from "@/components/cinematic-galaxy";
+import { DynamicMemoryCoverMaterial, memoryCoverSources } from "@/components/dynamic-memory-cover";
+import { DistantCelestialLayer } from "@/components/distant-celestial-layer";
+import { DreamComet } from "@/components/dream-comet";
 
 export type UniverseMedia = {
   id: string;
@@ -90,6 +94,8 @@ const BIG_PLANET_NAMES: Record<BigMemoryPlanet["id"], string> = {
   best: "曜藏星",
 };
 
+const CHRONICLE_ID = "__chronicle__";
+
 export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, onOpenDiary }: ThreeMemoryUniverseProps) {
   const [manifest, setManifest] = useState<UniverseManifest | null>(null);
   const [localPlanets, setLocalPlanets] = useState<LocalMemoryPlanet[]>([]);
@@ -100,24 +106,22 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
   const [shipMenuOpen, setShipMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [diaryOpen, setDiaryOpen] = useState(false);
-  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [chronicleOpen, setChronicleOpen] = useState(false);
+  const [chronicleArrived, setChronicleArrived] = useState(false);
   const [selectedDiary, setSelectedDiary] = useState<LocalDiaryEntry | null>(null);
   const [localRevision, setLocalRevision] = useState(0);
   const [diaryRevision, setDiaryRevision] = useState(0);
   const [reducedFx, setReducedFx] = useState(false);
   const [arrivedMemoryId, setArrivedMemoryId] = useState<string | null>(null);
   const flightIntensity = useRef(0);
+  const cometIntensity = useRef(0);
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCreateMemory = () => setCreateOpen(true);
   const openDiary = (entry: LocalDiaryEntry) => onOpenDiary ? onOpenDiary(entry) : setSelectedDiary(entry);
-  const removeDiary = async (id: string) => {
-    await deleteLocalDiary(id);
-    if (selectedDiary?.id === id) setSelectedDiary(null);
-    setDiaryRevision((revision) => revision + 1);
-  };
-
   useEffect(() => {
-    fetch("/universe-media/manifest.json").then((res) => res.json()).then(setManifest).catch(() => setManifest(null));
+    const version = new URLSearchParams(window.location.search).get("version");
+    const manifestPath = version === "demo" ? "/demo-media/manifest.json" : "/universe-media/manifest-personal.json";
+    fetch(manifestPath).then((res) => res.json()).then(setManifest).catch(() => setManifest(null));
   }, []);
 
   useEffect(() => {
@@ -131,16 +135,36 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
   const nodes = useMemo(() => (manifest ? buildMemoryNodes(manifest, isMobile, localPlanets) : []), [isMobile, localPlanets, manifest]);
   const activeMemory = nodes.find((node) => node.id === activeMemoryId) ?? null;
   const fxCompact = isMobile || isTablet || reducedFx;
+  const chroniclePosition = useMemo<[number, number, number]>(() => isMobile ? [-1.45, 2.48, -1.55] : isTablet ? [-3.25, 2.62, -1.75] : [-5.35, 2.75, -1.85], [isMobile, isTablet]);
+  const activeDestination = chronicleOpen ? { id: CHRONICLE_ID, position: chroniclePosition, phase: 0.84 } : activeMemory;
+  const sceneActive = Boolean(activeMemory || chronicleOpen);
 
   const selectMemory = (id: string) => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
+    setChronicleOpen(false);
+    setChronicleArrived(false);
     setArrivedMemoryId(null);
     setActiveMemoryId(id);
     setShipMenuOpen(false);
   };
 
+  const openChronicle = () => {
+    if (exitTimer.current) clearTimeout(exitTimer.current);
+    setActiveMemoryId(null);
+    setArrivedMemoryId(null);
+    setChronicleArrived(false);
+    setChronicleOpen(true);
+    setShipMenuOpen(false);
+  };
+
   const exitMemory = () => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
+    if (chronicleOpen) {
+      setChronicleArrived(false);
+      setChronicleOpen(false);
+      setShipMenuOpen(false);
+      return;
+    }
     setArrivedMemoryId(null);
     setShipMenuOpen(false);
     exitTimer.current = setTimeout(() => {
@@ -168,9 +192,9 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
   }, []);
 
   useEffect(() => {
-    if (!activeMemoryId || !exploring) return;
+    if ((!activeMemoryId && !chronicleOpen) || !exploring) return;
     return playFlightAudioCue();
-  }, [activeMemoryId, exploring]);
+  }, [activeMemoryId, chronicleOpen, exploring]);
 
   useEffect(() => () => {
     if (exitTimer.current) clearTimeout(exitTimer.current);
@@ -185,30 +209,33 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
       >
         <PerformanceMonitor flipflops={2} onDecline={() => setReducedFx(true)} onFallback={() => setReducedFx(true)} />
         <AdaptiveDpr pixelated />
-        <PerspectiveCamera makeDefault position={[0, 0.35, 11.2]} fov={48} />
-        <color attach="background" args={["#070311"]} />
-        <fog attach="fog" args={["#0b031d", 6.5, 27]} />
-        <ambientLight intensity={1.04} />
-        <pointLight position={[0, 0, 0]} color="#ff91d7" intensity={5.8} distance={15} />
-        <pointLight position={[-5.2, 3.8, 3.2]} color="#8ee7ff" intensity={3.4} distance={16} />
-        <pointLight position={[4.4, -2.8, -3.5]} color="#c4a2ff" intensity={2.6} distance={18} />
-        <Stars radius={95} depth={62} count={isMobile ? 500 : isTablet ? 1200 : 1900} factor={isMobile ? 1.15 : 1.45} saturation={0.45} fade speed={0.014} />
-        <Stars radius={70} depth={48} count={isMobile ? 600 : isTablet ? 1400 : 2100} factor={isMobile ? 1.9 : 2.55} saturation={0.9} fade speed={0.032} />
-        <NebulaClouds compact={fxCompact} active={Boolean(activeMemoryId)} flightRef={flightIntensity} />
-        <DistantStarClusters compact={fxCompact} active={Boolean(activeMemoryId)} />
-        <YearConstellations dimmed={Boolean(activeMemoryId)} />
-        <NearParticles compact={fxCompact} active={Boolean(activeMemoryId)} flightRef={flightIntensity} />
+        <PerspectiveCamera makeDefault position={[0, 0.35, isMobile ? 14.4 : 11.2]} fov={48} />
+        <color attach="background" args={[exploring ? "#071127" : "#123f72"]} />
+        <fog attach="fog" args={[exploring ? "#0b1530" : "#173d68", 8, 31]} />
+        <ambientLight color="#b9d8ff" intensity={0.82} />
+        <pointLight position={[0, -3.8, 2.4]} color="#ffb38f" intensity={5.2} distance={20} />
+        <pointLight position={[-6.2, 4.6, 4.4]} color="#83d8ff" intensity={3.8} distance={19} />
+        <pointLight position={[5.4, 1.2, -4.8]} color="#ff9fc7" intensity={2.4} distance={20} />
+        <Stars radius={100} depth={72} count={isMobile ? 420 : isTablet ? 850 : 1300} factor={isMobile ? 1.15 : 1.4} saturation={0.72} fade speed={0.012} />
+        <DistantCelestialLayer deviceMode={isMobile ? "mobile" : isTablet ? "tablet" : "desktop"} active={sceneActive} flightRef={flightIntensity} />
+        <CinematicGalaxy compact={fxCompact} active={sceneActive} flightRef={flightIntensity} cometRef={cometIntensity} />
+        <DreamComet deviceMode={isMobile ? "mobile" : isTablet ? "tablet" : "desktop"} enabled={exploring} active={sceneActive} intensityRef={cometIntensity} />
+        <NebulaClouds compact={fxCompact} active={sceneActive} flightRef={flightIntensity} />
+        <DistantStarClusters compact={fxCompact} active={sceneActive} />
+        <NearParticles compact={fxCompact} active={sceneActive} flightRef={flightIntensity} />
         <DreamPetals compact={fxCompact} flightRef={flightIntensity} />
         <VelocityStreaks compact={fxCompact} flightRef={flightIntensity} />
-        <ShootingStars compact={fxCompact} active={Boolean(activeMemoryId)} />
-        <CosmicPulseEvents compact={fxCompact} active={Boolean(activeMemoryId)} />
-        <SpaceDust compact={fxCompact} active={Boolean(activeMemoryId)} flightRef={flightIntensity} />
+        <ShootingStars compact={fxCompact} active={sceneActive} />
+        <CosmicPulseEvents compact={fxCompact} active={sceneActive} />
         <UniverseCamera
           exploring={exploring}
-          activeMemory={activeMemory}
+          activeDestination={activeDestination}
           compact={isMobile}
           flightRef={flightIntensity}
-          onArrival={setArrivedMemoryId}
+          onArrival={(id) => {
+            if (id === CHRONICLE_ID) setChronicleArrived(true);
+            else setArrivedMemoryId(id);
+          }}
         />
         {manifest ? (
           <SceneContent
@@ -223,12 +250,16 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
             diaries={diaries}
             onOpenDiary={openDiary}
             onShipOpen={() => setShipMenuOpen((open) => !open)}
+            chroniclePosition={chroniclePosition}
+            chronicleActive={chronicleOpen}
+            chronicleArrived={chronicleArrived}
+            onSelectChronicle={openChronicle}
           />
         ) : null}
         {!fxCompact ? <DreamPostEffects /> : null}
       </Canvas>
 
-      {activeMemoryId ? (
+      {activeMemoryId || chronicleOpen ? (
         <button
           type="button"
           onClick={exitMemory}
@@ -240,7 +271,7 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
       {shipMenuOpen ? (
         <div className="absolute bottom-5 left-1/2 z-20 w-[min(290px,calc(100vw-32px))] -translate-x-1/2 rounded-2xl border border-white/14 bg-[#170b28]/72 p-2 shadow-[0_16px_54px_rgba(0,0,0,0.38)] backdrop-blur-xl">
           <button type="button" onClick={() => { setShipMenuOpen(false); setDiaryOpen(true); }} className="mb-2 min-h-12 w-full rounded-xl border border-pink-100/24 bg-pink-100/14 px-3 text-sm tracking-[0.1em] text-pink-50 transition active:scale-95">记录今天</button>
-          <button type="button" onClick={() => { setShipMenuOpen(false); setCalendarOpen(true); }} className="mb-2 min-h-11 w-full rounded-xl border border-purple-100/18 bg-purple-100/10 px-3 text-xs tracking-[0.1em] text-purple-50 transition active:scale-95">打开星历</button>
+          <button type="button" onClick={openChronicle} className="mb-2 min-h-11 w-full rounded-xl border border-purple-100/18 bg-purple-100/10 px-3 text-xs tracking-[0.1em] text-purple-50 transition active:scale-95">前往时序星</button>
           <p className="px-3 pb-2 pt-1 text-center text-[10px] tracking-[0.16em] text-pink-100/62">记忆航行器</p>
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={visitRandomMemory} className="min-h-11 rounded-xl border border-pink-100/14 bg-pink-100/10 px-3 text-xs text-pink-50 transition active:scale-95">随机抵达</button>
@@ -251,28 +282,33 @@ export function ThreeMemoryUniverse({ exploring, onPreview, onOpenCollection, on
       ) : null}
       <CreateMemorySheet open={createOpen} onClose={() => setCreateOpen(false)} onCreated={() => setLocalRevision((revision) => revision + 1)} />
       <CreateDiarySheet open={diaryOpen} onClose={() => setDiaryOpen(false)} onCreated={() => setDiaryRevision((revision) => revision + 1)} />
-      <StarCalendar open={calendarOpen} entries={diaries} onClose={() => setCalendarOpen(false)} onOpenEntry={openDiary} onDeleteEntry={removeDiary} />
       <DiaryReader entry={selectedDiary} onClose={() => setSelectedDiary(null)} />
     </div>
   );
 }
 
+type CameraDestination = {
+  id: string;
+  position: [number, number, number];
+  phase: number;
+};
+
 function UniverseCamera({
   exploring,
-  activeMemory,
+  activeDestination,
   compact,
   flightRef,
   onArrival,
 }: {
   exploring: boolean;
-  activeMemory: MemoryNode | null;
+  activeDestination: CameraDestination | null;
   compact: boolean;
   flightRef: MutableRefObject<number>;
   onArrival: (memoryId: string | null) => void;
 }) {
-  const controls = useRef<OrbitControlsType | null>(null);
+  const controls = useRef<CameraControlsImpl | null>(null);
   const { camera } = useThree();
-  const previousId = useRef<string | null>(null);
+  const previousDestination = useRef<string | null>(null);
   const flight = useRef<{
     startedAt: number;
     fromPosition: THREE.Vector3;
@@ -291,36 +327,40 @@ function UniverseCamera({
   useFrame(() => {
     if (!controls.current) return;
     let completedThisFrame = false;
-    const nextId = activeMemory?.id ?? null;
-    if (previousId.current !== nextId) {
-      previousId.current = nextId;
-      const target = activeMemory ? new THREE.Vector3(...activeMemory.position) : new THREE.Vector3(0, 0, 0);
-      const position = activeMemory
-        ? target.clone().add(new THREE.Vector3(0.14, 0.22, compact ? 5.6 : 6.6))
-        : new THREE.Vector3(0, 0.35, 11.2);
+    const nextId = activeDestination?.id ?? null;
+    const destinationKey = activeDestination
+      ? `${nextId}:${activeDestination.position.join(":")}:${compact ? "compact" : "wide"}`
+      : `star-sea:${compact ? "compact" : "wide"}`;
+    if (previousDestination.current !== destinationKey) {
+      previousDestination.current = destinationKey;
+      const target = activeDestination ? new THREE.Vector3(...activeDestination.position) : new THREE.Vector3(0, 0, 0);
+      const position = activeDestination
+        ? target.clone().add(new THREE.Vector3(compact ? 0 : 0.14, 0.22, compact ? 8.6 : 6.6))
+        : new THREE.Vector3(0, 0.35, compact ? 14.4 : 11.2);
       const direction = position.clone().sub(camera.position).normalize();
       const distance = camera.position.distanceTo(position);
       const side = new THREE.Vector3().crossVectors(direction, camera.up).normalize();
-      const arcDirection = (activeMemory?.phase ?? 1) % 2 > 1 ? -1 : 1;
+      const arcDirection = (activeDestination?.phase ?? 1) % 2 > 1 ? -1 : 1;
       const positionControlA = camera.position.clone().addScaledVector(direction, distance * 0.16).addScaledVector(side, arcDirection * (compact ? 0.34 : 0.55));
-      positionControlA.y += activeMemory ? (compact ? 0.22 : 0.34) : 0.18;
+      positionControlA.y += activeDestination ? (compact ? 0.22 : 0.34) : 0.18;
       const positionControlB = camera.position.clone().lerp(position, 0.76).addScaledVector(side, arcDirection * (compact ? 0.88 : 1.35));
-      positionControlB.y += activeMemory ? (compact ? 0.48 : 0.76) : 0.28;
-      const targetControlA = controls.current.target.clone().lerp(target, 0.28);
-      targetControlA.y += activeMemory ? 0.12 : 0.06;
-      const targetControlB = controls.current.target.clone().lerp(target, 0.78);
-      targetControlB.y += activeMemory ? 0.3 : 0.1;
+      positionControlB.y += activeDestination ? (compact ? 0.48 : 0.76) : 0.28;
+      const currentTarget = controls.current.getTarget(new THREE.Vector3());
+      const targetControlA = currentTarget.clone().lerp(target, 0.28);
+      targetControlA.y += activeDestination ? 0.12 : 0.06;
+      const targetControlB = currentTarget.clone().lerp(target, 0.78);
+      targetControlB.y += activeDestination ? 0.3 : 0.1;
       flight.current = {
         startedAt: performance.now(),
         fromPosition: camera.position.clone(),
-        fromTarget: controls.current.target.clone(),
+        fromTarget: currentTarget,
         positionCurve: new THREE.CubicBezierCurve3(camera.position.clone(), positionControlA, positionControlB, position),
-        targetCurve: new THREE.CubicBezierCurve3(controls.current.target.clone(), targetControlA, targetControlB, target),
-        duration: activeMemory ? (compact ? 2250 : 2550) : 1750,
+        targetCurve: new THREE.CubicBezierCurve3(currentTarget.clone(), targetControlA, targetControlB, target),
+        duration: activeDestination ? (compact ? 2250 : 2550) : 1750,
         destinationId: nextId,
         arcDirection,
         fromFov: (camera as THREE.PerspectiveCamera).fov,
-        targetFov: activeMemory ? 45 : 48,
+        targetFov: activeDestination ? 45 : 48,
       };
     }
 
@@ -334,14 +374,19 @@ function UniverseCamera({
       controls.current.enabled = false;
       flight.current.positionCurve.getPoint(eased, cameraPoint.current);
       flight.current.targetCurve.getPoint(eased, targetPoint.current);
-      camera.position.copy(cameraPoint.current);
-      controls.current.target.copy(targetPoint.current);
+      controls.current.setLookAt(
+        cameraPoint.current.x,
+        cameraPoint.current.y,
+        cameraPoint.current.z,
+        targetPoint.current.x,
+        targetPoint.current.y,
+        targetPoint.current.z,
+        false,
+      );
       flightRef.current = THREE.MathUtils.lerp(flightRef.current, pulse, 0.18);
       const perspective = camera as THREE.PerspectiveCamera;
       perspective.fov = THREE.MathUtils.lerp(flight.current.fromFov, flight.current.targetFov, eased) + pulse * (compact ? 4.2 : 6.8);
       perspective.updateProjectionMatrix();
-      camera.lookAt(targetPoint.current);
-      camera.rotateZ(Math.sin(progress * Math.PI) * (compact ? 0.012 : 0.02) * flight.current.arcDirection);
       if (progress >= 1) {
         const destinationId = flight.current.destinationId;
         const targetFov = flight.current.targetFov;
@@ -356,21 +401,23 @@ function UniverseCamera({
       controls.current.enabled = exploring;
       flightRef.current = THREE.MathUtils.lerp(flightRef.current, 0, 0.12);
     }
-    controls.current.enableZoom = exploring;
-    if (!flight.current && !completedThisFrame) controls.current.update();
+    if (!flight.current && !completedThisFrame) controls.current.enabled = exploring;
   });
 
   return (
-    <OrbitControls
+    <CameraControls
       ref={controls}
-      enableDamping
-      dampingFactor={0.08}
-      enablePan={false}
-      minDistance={activeMemory ? 2.8 : 4.6}
-      maxDistance={activeMemory ? (compact ? 7.2 : 9.2) : 15}
-      rotateSpeed={0.42}
-      zoomSpeed={0.52}
-      touches={{ ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_ROTATE }}
+      makeDefault
+      enabled={exploring}
+      smoothTime={0.42}
+      draggingSmoothTime={0.14}
+      truckSpeed={0}
+      minDistance={activeDestination ? 2.8 : 4.6}
+      maxDistance={activeDestination ? (compact ? 10 : 9.2) : 15}
+      azimuthRotateSpeed={0.62}
+      polarRotateSpeed={0.52}
+      dollySpeed={0.46}
+      dollyToCursor={false}
     />
   );
 }
@@ -387,6 +434,10 @@ function SceneContent({
   diaries,
   onOpenDiary,
   onShipOpen,
+  chroniclePosition,
+  chronicleActive,
+  chronicleArrived,
+  onSelectChronicle,
 }: {
   nodes: MemoryNode[];
   exploring: boolean;
@@ -399,17 +450,33 @@ function SceneContent({
   diaries: LocalDiaryEntry[];
   onOpenDiary: (entry: LocalDiaryEntry) => void;
   onShipOpen: () => void;
+  chroniclePosition: [number, number, number];
+  chronicleActive: boolean;
+  chronicleArrived: boolean;
+  onSelectChronicle: () => void;
 }) {
   const activeMemory = nodes.find((node) => node.id === activeMemoryId) ?? null;
+  const sceneFocused = Boolean(activeMemory || chronicleActive);
+  const focusId = chronicleActive ? CHRONICLE_ID : activeMemoryId;
 
   return (
     <group scale={exploring ? 1 : 0.72}>
-      {!activeMemory ? <CenterMark dimmed={false} /> : null}
-      <MemoryShip compact={compact} dimmed={Boolean(activeMemory)} onOpen={onShipOpen} />
-      <MemoryStarField nodes={nodes} activeMemoryId={activeMemoryId} arrivedMemoryId={arrivedMemoryId} onSelectMemory={onSelectMemory} onOpenCollection={onOpenCollection} />
-      <DiaryStarField entries={diaries} dimmed={Boolean(activeMemory)} onOpen={onOpenDiary} />
+      {!sceneFocused ? <CenterMark dimmed={false} /> : null}
+      <MemoryShip compact={compact} dimmed={sceneFocused} onOpen={onShipOpen} />
+      <MemoryStarField nodes={nodes} activeMemoryId={focusId} arrivedMemoryId={arrivedMemoryId} onSelectMemory={onSelectMemory} onOpenCollection={onOpenCollection} />
+      <DiaryStarField entries={diaries} dimmed={sceneFocused} onOpen={onOpenDiary} />
+      <ChroniclePlanet
+        position={chroniclePosition}
+        compact={compact}
+        active={chronicleActive}
+        arrived={chronicleArrived}
+        dimmed={Boolean(activeMemory)}
+        entries={diaries}
+        onSelect={onSelectChronicle}
+        onOpenDiary={onOpenDiary}
+      />
       {/* Floating memories stay around the planet while its central cover remains the collection entry. */}
-      {activeMemory ? <MemoryOrbitRing memory={activeMemory} origin={activeMemory.position} compact={compact} expanded={arrivedMemoryId === activeMemory.id} onPreview={onPreview} /> : null}
+      {activeMemory ? <MemoryOrbitRing memory={activeMemory} origin={activeMemory.position} compact={compact} expanded={arrivedMemoryId === activeMemory.id} layoutMode={activeMemory.important ? "waterfall" : "ribbon"} onPreview={onPreview} /> : null}
       <ReleaseFlash memory={activeMemory && arrivedMemoryId === activeMemory.id ? activeMemory : null} />
     </group>
   );
@@ -418,8 +485,9 @@ function SceneContent({
 function DreamPostEffects() {
   return (
     <EffectComposer multisampling={0} enableNormalPass={false}>
-      <Bloom intensity={0.72} luminanceThreshold={0.76} luminanceSmoothing={0.48} mipmapBlur />
-      <Vignette eskil={false} offset={0.24} darkness={0.62} />
+      <Bloom intensity={0.66} luminanceThreshold={0.8} luminanceSmoothing={0.52} mipmapBlur />
+      <Noise opacity={0.012} />
+      <Vignette eskil={false} offset={0.22} darkness={0.46} />
     </EffectComposer>
   );
 }
@@ -432,20 +500,20 @@ function MemoryShip({ compact, dimmed, onOpen }: { compact: boolean; dimmed: boo
   const [hovered, setHovered] = useState(false);
   const wingShape = useMemo(() => {
     const shape = new THREE.Shape();
-    shape.moveTo(-0.2, 0);
-    shape.lineTo(0.2, 0.035);
-    shape.lineTo(-0.1, 0.31);
-    shape.lineTo(-0.26, 0.25);
+    shape.moveTo(-0.28, 0);
+    shape.quadraticCurveTo(0.02, 0.015, 0.25, 0.055);
+    shape.quadraticCurveTo(-0.03, 0.22, -0.2, 0.35);
+    shape.quadraticCurveTo(-0.31, 0.24, -0.28, 0);
     shape.closePath();
     return shape;
   }, []);
   const trail = useMemo(() => {
-    const values = new Float32Array(22 * 3);
-    for (let index = 0; index < 22; index += 1) {
-      const distance = index / 21;
-      values[index * 3] = -0.42 - distance * 0.78;
-      values[index * 3 + 1] = (seed(index, 71) - 0.5) * (0.04 + distance * 0.17);
-      values[index * 3 + 2] = (seed(index, 72) - 0.5) * (0.04 + distance * 0.12);
+    const values = new Float32Array(32 * 3);
+    for (let index = 0; index < 32; index += 1) {
+      const distance = index / 31;
+      values[index * 3] = -0.42 - distance * 1.08;
+      values[index * 3 + 1] = Math.sin(distance * 7.2) * 0.035 + (seed(index, 71) - 0.5) * (0.025 + distance * 0.1);
+      values[index * 3 + 2] = (seed(index, 72) - 0.5) * (0.025 + distance * 0.08);
     }
     return values;
   }, []);
@@ -455,12 +523,12 @@ function MemoryShip({ compact, dimmed, onOpen }: { compact: boolean; dimmed: boo
     const t = state.clock.elapsedTime;
     ship.current.position.y = (compact ? 2.25 : 2.55) + Math.sin(t * 0.62) * 0.08;
     ship.current.position.x = (compact ? 2.35 : 3.35) + Math.cos(t * 0.36) * 0.09;
-    ship.current.rotation.z = -0.12 + Math.sin(t * 0.42) * 0.035;
-    ship.current.rotation.y = Math.sin(t * 0.31) * 0.16;
+    ship.current.rotation.z = -0.09 + Math.sin(t * 0.42) * 0.028;
+    ship.current.rotation.y = Math.sin(t * 0.31) * 0.12;
     ship.current.scale.setScalar(THREE.MathUtils.lerp(ship.current.scale.x, hovered ? 1.1 : dimmed ? 0.72 : 1, 0.08));
-    if (engine.current) engine.current.opacity = dimmed ? 0.1 : 0.4 + Math.sin(t * 4.2) * 0.14;
-    if (engineRing.current) engineRing.current.rotation.x += delta * 1.2;
-    if (cabin.current) cabin.current.emissiveIntensity = dimmed ? 0.12 : 0.42 + Math.sin(t * 1.5) * 0.08;
+    if (engine.current) engine.current.opacity = dimmed ? 0.08 : 0.34 + Math.sin(t * 3.4) * 0.1;
+    if (engineRing.current) engineRing.current.rotation.x += delta * 0.72;
+    if (cabin.current) cabin.current.emissiveIntensity = dimmed ? 0.08 : 0.26 + Math.sin(t * 1.5) * 0.06;
   });
 
   const open = (event: ThreeEvent<MouseEvent>) => {
@@ -470,37 +538,37 @@ function MemoryShip({ compact, dimmed, onOpen }: { compact: boolean; dimmed: boo
 
   return (
     <group ref={ship} position={[compact ? 2.35 : 3.35, compact ? 2.25 : 2.55, 0.35]} scale={compact ? 0.86 : 1}>
-      <mesh rotation={[0, 0, -Math.PI / 2]} scale={[1, 1, 0.82]}>
-        <capsuleGeometry args={[0.13, 0.42, 8, 20]} />
-        <meshPhysicalMaterial color="#fff8ff" emissive="#e9b9ff" emissiveIntensity={0.2} roughness={0.18} metalness={0.34} clearcoat={1} clearcoatRoughness={0.12} transparent opacity={dimmed ? 0.3 : 0.94} />
+      <mesh rotation={[0, 0, -Math.PI / 2]} scale={[1.08, 0.86, 0.7]}>
+        <capsuleGeometry args={[0.12, 0.46, 8, 24]} />
+        <meshPhysicalMaterial color="#f7fbff" emissive="#bce8ff" emissiveIntensity={0.1} roughness={0.14} metalness={0.5} clearcoat={1} clearcoatRoughness={0.08} transparent opacity={dimmed ? 0.24 : 0.94} />
       </mesh>
-      <mesh position={[0.39, 0, 0]} rotation={[0, 0, -Math.PI / 2]} scale={[1, 0.9, 0.78]}>
-        <coneGeometry args={[0.13, 0.3, 20]} />
-        <meshPhysicalMaterial color="#fff5ff" emissive="#f6c8ff" emissiveIntensity={0.18} roughness={0.16} metalness={0.42} clearcoat={1} />
+      <mesh position={[0.42, 0, 0]} rotation={[0, 0, -Math.PI / 2]} scale={[1.18, 0.8, 0.64]}>
+        <coneGeometry args={[0.12, 0.34, 24]} />
+        <meshPhysicalMaterial color="#ffffff" emissive="#c8eeff" emissiveIntensity={0.08} roughness={0.12} metalness={0.55} clearcoat={1} />
       </mesh>
-      <mesh position={[0.1, 0.105, 0.105]} scale={[0.86, 0.66, 0.62]}>
-        <sphereGeometry args={[0.2, 24, 16]} />
-        <meshPhysicalMaterial ref={cabin} color="#b9edff" emissive="#72d9ff" emissiveIntensity={0.42} transmission={0.3} thickness={0.7} transparent opacity={dimmed ? 0.15 : 0.72} roughness={0.05} metalness={0.08} clearcoat={1} />
+      <mesh position={[0.09, 0.095, 0.09]} scale={[0.9, 0.58, 0.52]}>
+        <sphereGeometry args={[0.19, 28, 18]} />
+        <meshPhysicalMaterial ref={cabin} color="#d8f7ff" emissive="#79dfff" emissiveIntensity={0.28} transmission={0.48} thickness={0.62} transparent opacity={dimmed ? 0.12 : 0.66} roughness={0.04} metalness={0.04} clearcoat={1} />
       </mesh>
-      <mesh position={[-0.08, -0.03, 0.02]}>
+      <mesh position={[-0.11, -0.025, 0.015]}>
         <shapeGeometry args={[wingShape]} />
-        <meshPhysicalMaterial color="#f5c982" emissive="#ffbc68" emissiveIntensity={0.28} roughness={0.22} metalness={0.58} side={THREE.DoubleSide} transparent opacity={dimmed ? 0.22 : 0.88} />
+        <meshPhysicalMaterial color="#d9f3ff" emissive="#8cdfff" emissiveIntensity={0.12} roughness={0.16} metalness={0.42} side={THREE.DoubleSide} transparent opacity={dimmed ? 0.16 : 0.78} clearcoat={1} />
       </mesh>
-      <mesh position={[-0.08, 0.03, -0.03]} scale={[1, -1, 1]}>
+      <mesh position={[-0.11, 0.025, -0.025]} scale={[1, -1, 1]}>
         <shapeGeometry args={[wingShape]} />
-        <meshPhysicalMaterial color="#f1b9dc" emissive="#ff8fd2" emissiveIntensity={0.25} roughness={0.22} metalness={0.46} side={THREE.DoubleSide} transparent opacity={dimmed ? 0.2 : 0.86} />
+        <meshPhysicalMaterial color="#e8f7ff" emissive="#91dfff" emissiveIntensity={0.1} roughness={0.16} metalness={0.42} side={THREE.DoubleSide} transparent opacity={dimmed ? 0.16 : 0.78} clearcoat={1} />
       </mesh>
-      <mesh ref={engineRing} position={[-0.36, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <torusGeometry args={[0.15, 0.014, 8, 40]} />
-        <meshBasicMaterial color="#aeeeff" transparent opacity={dimmed ? 0.08 : 0.68} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <mesh ref={engineRing} position={[-0.39, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <torusGeometry args={[0.13, 0.009, 8, 48]} />
+        <meshBasicMaterial color="#d9f8ff" transparent opacity={dimmed ? 0.06 : 0.54} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh position={[-0.53, 0, 0]} rotation={[0, 0, Math.PI / 2]} scale={[1.6, 0.76, 0.76]}>
-        <coneGeometry args={[0.13, 0.42, 20]} />
-        <meshBasicMaterial ref={engine} color="#bdefff" transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <mesh position={[-0.57, 0, 0]} rotation={[0, 0, Math.PI / 2]} scale={[1.8, 0.58, 0.58]}>
+        <coneGeometry args={[0.11, 0.48, 20]} />
+        <meshBasicMaterial ref={engine} color="#ccefff" transparent opacity={0.4} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <points>
         <bufferGeometry><bufferAttribute attach="attributes-position" args={[trail, 3]} /></bufferGeometry>
-        <pointsMaterial size={0.04} color="#ffc9ec" transparent opacity={dimmed ? 0.1 : 0.68} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
+        <pointsMaterial size={0.028} color="#d8f5ff" transparent opacity={dimmed ? 0.06 : 0.56} depthWrite={false} blending={THREE.AdditiveBlending} sizeAttenuation />
       </points>
       <mesh scale={[1.9, 1.25, 1.25]} onClick={open} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
         <sphereGeometry args={[0.28, 12, 10]} />
@@ -725,7 +793,7 @@ function MemoryStar({
   const ringRef = useRef<THREE.Mesh>(null);
   const dustRef = useRef<THREE.Points>(null);
   const previewRef = useRef<THREE.Group>(null);
-  const texture = useTexture(node.cover ?? "/universe-media/thumbs/001.jpg");
+  const coverSources = useMemo(() => memoryCoverSources(node.cover, node.items, 2), [node.cover, node.items]);
   const colors = THEME_COLORS[node.theme];
   const opacity = dimmed ? 0.18 : 1;
 
@@ -742,15 +810,6 @@ function MemoryStar({
     return arr;
   }, [index, node.important, node.size]);
 
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 2;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.repeat.x = -1;
-    texture.offset.x = 1;
-    texture.needsUpdate = true;
-  }, [texture]);
-
   useFrame((state) => {
     if (!group.current) return;
     const t = state.clock.elapsedTime;
@@ -760,7 +819,7 @@ function MemoryStar({
     group.current.position.z = node.position[2] + (dimmed ? -1.4 : 0);
     group.current.rotation.y = t * 0.05 + node.phase;
     if (haloRef.current) {
-      (haloRef.current.material as THREE.MeshBasicMaterial).opacity = dimmed ? 0.025 : active ? 0.34 + Math.sin(t * 1.3 + index) * 0.08 : 0.16 + Math.sin(t * 1.1 + index) * 0.06;
+      (haloRef.current.material as THREE.MeshBasicMaterial).opacity = dimmed ? 0.014 : active ? 0.18 + Math.sin(t * 1.3 + index) * 0.035 : 0.075 + Math.sin(t * 1.1 + index) * 0.022;
     }
     if (ringRef.current) ringRef.current.rotation.z = t * 0.12 + node.phase;
     if (dustRef.current) dustRef.current.rotation.y = t * 0.18;
@@ -784,23 +843,29 @@ function MemoryStar({
         <sphereGeometry args={[node.size * (node.important ? 3.1 : 4.45), 18, 12]} />
         <meshBasicMaterial color="#ffffff" transparent opacity={0} depthWrite={false} />
       </mesh>
-      <mesh ref={haloRef} scale={node.important ? 4.2 : 3.4}>
+      <mesh ref={haloRef} scale={node.important ? 3.2 : 2.35}>
         <sphereGeometry args={[node.size, 20, 14]} />
-        <meshBasicMaterial color={colors[0]} transparent opacity={0.12} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={0.075} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh onClick={handleClick} scale={node.important ? 1.25 : 1}>
+      <mesh position={[0, 0, -node.size * 0.14]} onClick={handleClick} scale={node.important ? 1.25 : 1}>
         <sphereGeometry args={[node.size, 22, 14]} />
-        <meshBasicMaterial color={colors[1]} transparent opacity={0.34 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={colors[1]} transparent opacity={0.24 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh scale={node.important ? 1.9 : 1.55}>
+      <mesh position={[0, 0, -node.size * 0.12]} scale={node.important ? 1.72 : 1.48}>
         <sphereGeometry args={[node.size, 20, 12]} />
-        <meshPhysicalMaterial color={colors[2]} transparent opacity={0.13 * opacity} roughness={0.08} transmission={0.36} clearcoat={1} emissive={colors[0]} emissiveIntensity={0.12} depthWrite={false} />
+        <meshPhysicalMaterial color={colors[1]} transparent opacity={0.11 * opacity} roughness={0.08} transmission={0.48} thickness={0.2} ior={1.16} clearcoat={1} emissive={colors[0]} emissiveIntensity={0.08} depthWrite={false} />
       </mesh>
       <group ref={previewRef} position={[0, 0, node.size * 0.12]}>
         <Billboard follow>
           <mesh onClick={handleClick}>
-            <circleGeometry args={[node.size * (node.important ? 0.74 : 0.58), 24]} />
-            <meshBasicMaterial map={texture} transparent opacity={(node.important ? 0.22 : 0.12) * opacity} depthWrite={false} side={THREE.DoubleSide} />
+            <circleGeometry args={[node.size * (node.important ? 0.74 : 0.64), 32]} />
+            <DynamicMemoryCoverMaterial
+              sources={coverSources}
+              tint={colors[0]}
+              opacity={(active ? 0.46 : 0.24) * opacity}
+              active={active}
+              phase={node.phase}
+            />
           </mesh>
         </Billboard>
       </group>
@@ -811,8 +876,8 @@ function MemoryStar({
         </mesh>
       </Billboard>
       <mesh ref={ringRef} rotation={[0.78, 0.2, node.phase]} scale={node.important ? 1.15 : 1}>
-        <torusGeometry args={[node.size * 2.05, node.size * 0.025, 6, 54]} />
-        <meshBasicMaterial color={colors[1]} transparent opacity={0.25 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <torusGeometry args={[node.size * 1.92, node.size * 0.018, 6, 64]} />
+        <meshBasicMaterial color={colors[1]} transparent opacity={0.28 * opacity} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <points ref={dustRef}>
         <bufferGeometry>
@@ -825,62 +890,6 @@ function MemoryStar({
           {node.title}
         </Text>
       </Billboard>
-    </group>
-  );
-}
-
-function YearConstellations({ dimmed }: { dimmed: boolean }) {
-  const labels = [
-    { year: "2024", name: "闪光日常", position: [5.7, 1.8, -8.4] as [number, number, number] },
-    { year: "2025", name: "正在发光", position: [1.2, -3.1, -7.6] as [number, number, number] },
-  ];
-
-  return (
-    <group>
-      {labels.map((label) => (
-        <Billboard key={label.year} position={label.position} follow>
-          <Text fontSize={0.18} anchorX="center" anchorY="middle" color="#f9e8ff" fillOpacity={dimmed ? 0.12 : 0.34}>
-            {label.year}
-          </Text>
-          <Text position={[0, -0.22, 0]} fontSize={0.064} anchorX="center" anchorY="middle" color="#bfefff" fillOpacity={dimmed ? 0.08 : 0.26}>
-            {label.name}
-          </Text>
-        </Billboard>
-      ))}
-    </group>
-  );
-}
-
-function SpaceDust({ compact, active, flightRef }: { compact: boolean; active: boolean; flightRef: MutableRefObject<number> }) {
-  const group = useRef<THREE.Group>(null);
-  const positions = useMemo(() => {
-    const count = compact ? 820 : 1800;
-    const arr = new Float32Array(count * 3);
-    for (let index = 0; index < count; index += 1) {
-      const arm = index % 5;
-      const t = index / count;
-      const radius = 0.65 + Math.pow(t, 0.66) * 8.8;
-      const angle = radius * 1.32 + arm * (Math.PI / 2.5) + (seed(index, 2) - 0.5) * 0.68;
-      arr[index * 3] = Math.cos(angle) * radius;
-      arr[index * 3 + 1] = (seed(index, 3) - 0.5) * 1.3;
-      arr[index * 3 + 2] = Math.sin(angle) * radius * 0.58 - 1.0;
-    }
-    return arr;
-  }, [compact]);
-
-  useFrame((_, delta) => {
-    if (!group.current) return;
-    group.current.rotation.y += delta * ((active ? 0.03 : 0.016) + flightRef.current * 0.05);
-  });
-
-  return (
-    <group ref={group} rotation={[0.12, 0, -0.08]}>
-      <points>
-        <bufferGeometry>
-          <bufferAttribute attach="attributes-position" args={[positions, 3]} />
-        </bufferGeometry>
-        <pointsMaterial size={compact ? 0.028 : 0.034} color="#ffd7f3" transparent opacity={active ? 0.4 : 0.64} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </points>
     </group>
   );
 }
@@ -1113,11 +1122,11 @@ const NEBULA_FRAGMENT_SHADER = `
 function NebulaClouds({ compact, active, flightRef }: { compact: boolean; active: boolean; flightRef: MutableRefObject<number> }) {
   const layers = useMemo(() => {
     const all = [
-      { position: [-2.6, 1.25, -7.5] as [number, number, number], rotation: [0.08, 0.2, -0.24] as [number, number, number], scale: [15.5, 7.4] as [number, number], color: "#ff67c8", opacity: 0.32, phase: 0.2 },
-      { position: [5.2, -1.45, -9.8] as [number, number, number], rotation: [-0.12, -0.24, 0.22] as [number, number, number], scale: [14.8, 8.2] as [number, number], color: "#765dff", opacity: 0.3, phase: 1.7 },
-      { position: [-1.2, -3.15, -6.2] as [number, number, number], rotation: [0.18, -0.08, -0.38] as [number, number, number], scale: [11.8, 5.8] as [number, number], color: "#58d9ef", opacity: 0.22, phase: 3.1 },
-      { position: [2.8, 4.4, -12.6] as [number, number, number], rotation: [-0.18, 0.15, 0.36] as [number, number, number], scale: [16.2, 8.1] as [number, number], color: "#df7cff", opacity: 0.22, phase: 4.4 },
-      { position: [-8.4, -0.2, -13.8] as [number, number, number], rotation: [0.05, 0.3, 0.08] as [number, number, number], scale: [14.8, 6.5] as [number, number], color: "#ff9bcf", opacity: 0.19, phase: 5.8 },
+      { position: [-2.6, 1.25, -7.5] as [number, number, number], rotation: [0.08, 0.2, -0.24] as [number, number, number], scale: [15.5, 7.4] as [number, number], color: "#ff9fbd", opacity: 0.22, phase: 0.2 },
+      { position: [5.2, -1.45, -9.8] as [number, number, number], rotation: [-0.12, -0.24, 0.22] as [number, number, number], scale: [14.8, 8.2] as [number, number], color: "#607dff", opacity: 0.2, phase: 1.7 },
+      { position: [-1.2, -3.15, -6.2] as [number, number, number], rotation: [0.18, -0.08, -0.38] as [number, number, number], scale: [11.8, 5.8] as [number, number], color: "#63cbe8", opacity: 0.14, phase: 3.1 },
+      { position: [2.8, 4.4, -12.6] as [number, number, number], rotation: [-0.18, 0.15, 0.36] as [number, number, number], scale: [16.2, 8.1] as [number, number], color: "#8e8eff", opacity: 0.16, phase: 4.4 },
+      { position: [-8.4, -0.2, -13.8] as [number, number, number], rotation: [0.05, 0.3, 0.08] as [number, number, number], scale: [14.8, 6.5] as [number, number], color: "#ffbb8f", opacity: 0.13, phase: 5.8 },
     ];
     return compact ? all.slice(0, 3) : all;
   }, [compact]);
@@ -1199,7 +1208,7 @@ function createNebulaTexture(phase: number) {
 
 function ShootingStars({ compact, active }: { compact: boolean; active: boolean }) {
   const group = useRef<THREE.Group>(null);
-  const count = compact ? 4 : 7;
+  const count = compact ? 2 : 4;
   const stars = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => ({
@@ -1304,11 +1313,9 @@ function ReleaseFlash({ memory }: { memory: MemoryNode | null }) {
 }
 
 function buildMemoryNodes(manifest: UniverseManifest, compact: boolean, localPlanets: LocalMemoryPlanet[]): MemoryNode[] {
-  const bigPositions: Array<[number, number, number]> = [
-    [0, 1.6, -1.25],
-    [-4.05, -1.45, -0.65],
-    [4.05, -1.35, -0.85],
-  ];
+  const bigPositions: Array<[number, number, number]> = compact
+    ? [[0, 1.5, -1.25], [-2.05, -1.35, -0.65], [2.05, -1.28, -0.85]]
+    : [[0, 1.6, -1.25], [-4.05, -1.45, -0.65], [4.05, -1.35, -0.85]];
   const bigNodes: MemoryNode[] = manifest.bigPlanets.map((planet, index) => ({
     id: planet.id,
     title: BIG_PLANET_NAMES[planet.id],
@@ -1325,7 +1332,7 @@ function buildMemoryNodes(manifest: UniverseManifest, compact: boolean, localPla
 
   const themes: MemoryTheme[] = ["pink", "cyan", "gold", "purple"];
   const featuredPositions: Array<[number, number, number]> = compact
-    ? [[-3.25, 2.45, -1.65], [3.35, 2.35, -1.7], [0, -3.25, -1.45]]
+    ? [[-2.28, 2.62, -1.65], [2.3, 2.52, -1.7], [0, -3.12, -1.45]]
     : [[-5.55, 2.75, -1.85], [5.65, 2.6, -1.9], [0, -4.35, -1.55]];
   const featuredThemes: MemoryTheme[] = ["cyan", "gold", "pink"];
   const featuredPlanets = manifest.smallPlanets.filter((item) => item.id.startsWith("featured-"));
@@ -1346,7 +1353,7 @@ function buildMemoryNodes(manifest: UniverseManifest, compact: boolean, localPla
   const regularSmallPlanets = manifest.smallPlanets.filter((item) => !item.id.startsWith("featured-"));
   const smallNodes: MemoryNode[] = regularSmallPlanets.slice(0, compact ? 18 : 24).map((item, index) => {
     const angle = index * 2.399;
-    const radius = (compact ? 3.45 : 4.45) + (index % 8) * (compact ? 0.42 : 0.58);
+    const radius = (compact ? 2.55 : 4.45) + (index % 8) * (compact ? 0.28 : 0.58);
     const layer = index % 3;
     return {
       id: item.id,
@@ -1369,7 +1376,7 @@ function buildMemoryNodes(manifest: UniverseManifest, compact: boolean, localPla
 
   const localNodes: MemoryNode[] = localPlanets.map((planet, index) => {
     const angle = Math.PI * 0.22 + index * 1.68;
-    const radius = (compact ? 3.15 : 4.15) + Math.floor(index / 4) * 0.72;
+    const radius = (compact ? 2.45 : 4.15) + Math.floor(index / 4) * (compact ? 0.46 : 0.72);
     return {
       id: planet.id,
       title: planet.title,

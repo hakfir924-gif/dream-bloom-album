@@ -1,11 +1,12 @@
 "use client";
 
-import { Billboard, RoundedBox, Text, useTexture } from "@react-three/drei";
+import { Billboard, MeshTransmissionMaterial, Text, Trail } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { MemoryNode, MemoryTheme } from "@/components/three-memory-universe";
+import { DynamicMemoryCoverMaterial, memoryCoverSources } from "@/components/dynamic-memory-cover";
 
 const THEME_COLORS: Record<MemoryTheme, [string, string, string]> = {
   pink: ["#ff8bd8", "#ffe2f6", "#6f295f"],
@@ -67,10 +68,12 @@ export function MemoryPlanetGroup({
   const shell = useRef<THREE.MeshPhysicalMaterial>(null);
   const halo = useRef<THREE.MeshBasicMaterial>(null);
   const ringA = useRef<THREE.Mesh>(null);
-  const ringB = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
-  const radius = node.size * 1.9;
+  const { size } = useThree();
+  const compact = size.width < 820;
+  const radius = node.size * 2.12;
   const colors = THEME_COLORS[node.theme];
+  const coverSources = useMemo(() => memoryCoverSources(node.cover, node.items, compact ? 2 : 3), [compact, node.cover, node.items]);
 
   useFrame((state, delta) => {
     if (!planet.current) return;
@@ -83,9 +86,8 @@ export function MemoryPlanetGroup({
     planet.current.scale.setScalar(nextScale);
 
     if (ringA.current) ringA.current.rotation.z += delta * 0.16;
-    if (ringB.current) ringB.current.rotation.z -= delta * 0.1;
-    if (shell.current) shell.current.opacity = THREE.MathUtils.lerp(shell.current.opacity, dimmed ? 0.025 : active ? 0.28 : hovered ? 0.25 : 0.19, 0.07);
-    if (halo.current) halo.current.opacity = THREE.MathUtils.lerp(halo.current.opacity, dimmed ? 0.012 : active ? 0.2 : hovered ? 0.17 : 0.11, 0.07);
+    if (shell.current) shell.current.opacity = THREE.MathUtils.lerp(shell.current.opacity, dimmed ? 0.02 : active ? 0.22 : hovered ? 0.19 : 0.13, 0.07);
+    if (halo.current) halo.current.opacity = THREE.MathUtils.lerp(halo.current.opacity, dimmed ? 0.01 : active ? 0.16 : hovered ? 0.13 : 0.075, 0.07);
   });
 
   const select = (event: ThreeEvent<MouseEvent>) => {
@@ -109,43 +111,64 @@ export function MemoryPlanetGroup({
 
   return (
     <group ref={planet} position={node.position}>
-      <mesh scale={1.82}>
+      <mesh scale={1.58}>
         <sphereGeometry args={[radius, 28, 18]} />
-        <meshBasicMaterial ref={halo} color={colors[0]} transparent opacity={0.13} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial ref={halo} color={colors[0]} transparent opacity={0.08} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
 
       <MemoryCore radius={radius} colors={colors} active={active || hovered} />
       <InnerMemoryMist radius={radius} colors={colors} index={index} dimmed={dimmed} />
-      <InnerCover cover={node.cover} radius={radius} colors={colors} dimmed={dimmed} active={active} arrived={arrived} onOpen={onOpenCollection ? () => onOpenCollection(node) : undefined} />
+      <PlanetCloudBands radius={radius} colors={colors} index={index} dimmed={dimmed} />
+      <InnerCover sources={coverSources} radius={radius} colors={colors} dimmed={dimmed} active={active} arrived={arrived} phase={node.phase} onOpen={onOpenCollection ? () => onOpenCollection(node) : undefined} />
 
       <mesh>
         <sphereGeometry args={[radius, 32, 20]} />
-        <meshPhysicalMaterial
-          ref={shell}
-          color={colors[1]}
-          transparent
-          opacity={0.19}
-          roughness={0.1}
-          metalness={0.02}
-          transmission={0.18}
-          thickness={0.18}
-          ior={1.16}
-          clearcoat={0.95}
-          clearcoatRoughness={0.12}
-          depthWrite={false}
-        />
+        {node.important && !compact ? (
+          <MeshTransmissionMaterial
+            ref={(material) => { shell.current = material as THREE.MeshPhysicalMaterial | null; }}
+            color={colors[1]}
+            transparent
+            opacity={0.13}
+            samples={2}
+            resolution={128}
+            roughness={0.14}
+            transmission={0.72}
+            thickness={0.34}
+            ior={1.18}
+            chromaticAberration={0.025}
+            anisotropicBlur={0.08}
+            distortion={0.12}
+            distortionScale={0.18}
+            temporalDistortion={0.035}
+            clearcoat={0.92}
+            clearcoatRoughness={0.14}
+            depthWrite={false}
+          />
+        ) : (
+          <meshPhysicalMaterial
+            ref={shell}
+            color={colors[1]}
+            transparent
+            opacity={0.13}
+            roughness={0.16}
+            metalness={0.02}
+            transmission={0.28}
+            thickness={0.24}
+            ior={1.16}
+            clearcoat={0.95}
+            clearcoatRoughness={0.12}
+            depthWrite={false}
+          />
+        )}
       </mesh>
 
       <DreamAtmosphere radius={radius} colors={colors} dimmed={dimmed} active={active || hovered} />
 
       <mesh ref={ringA} rotation={[0.76, 0.18, node.phase]}>
-        <torusGeometry args={[radius * 1.58, radius * 0.035, 8, 72]} />
-        <meshBasicMaterial color={colors[1]} transparent opacity={dimmed ? 0.06 : 0.45} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <torusGeometry args={[radius * 1.48, radius * 0.018, 7, 96]} />
+        <meshBasicMaterial color={colors[1]} transparent opacity={dimmed ? 0.04 : 0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
-      <mesh ref={ringB} rotation={[1.22, -0.42, node.phase + 0.9]} scale={0.82}>
-        <torusGeometry args={[radius * 1.68, radius * 0.022, 8, 64]} />
-        <meshBasicMaterial color={colors[0]} transparent opacity={dimmed ? 0.04 : 0.28} depthWrite={false} blending={THREE.AdditiveBlending} />
-      </mesh>
+      {node.important ? <PlanetCometTrail radius={radius} colors={colors} phase={node.phase} dimmed={dimmed} /> : <CometTrail radius={radius} colors={colors} phase={node.phase} dimmed={dimmed} />}
 
       <MemoryFragments radius={radius} colors={colors} index={index} dimmed={dimmed} />
 
@@ -244,29 +267,111 @@ function MemoryCore({ radius, colors, active }: { radius: number; colors: [strin
     <group ref={group} position={[0, 0, -radius * 0.18]}>
       <mesh scale={[1.22, 0.96, 1]}>
         <sphereGeometry args={[radius * 0.5, 24, 16]} />
-        <meshBasicMaterial color={colors[0]} transparent opacity={active ? 0.36 : 0.25} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={active ? 0.24 : 0.15} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
       <mesh>
         <sphereGeometry args={[radius * 0.27, 22, 16]} />
-        <meshBasicMaterial color={colors[1]} transparent opacity={0.5} depthWrite={false} blending={THREE.AdditiveBlending} />
+        <meshBasicMaterial color={colors[1]} transparent opacity={active ? 0.38 : 0.25} depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
     </group>
   );
 }
 
-function InnerCover({ cover, radius, colors, dimmed, active, arrived, onOpen }: { cover: string | null; radius: number; colors: [string, string, string]; dimmed: boolean; active: boolean; arrived: boolean; onOpen?: () => void }) {
+function PlanetCloudBands({ radius, colors, index, dimmed }: { radius: number; colors: [string, string, string]; index: number; dimmed: boolean }) {
+  const points = useRef<THREE.Points>(null);
+  const positions = useMemo(() => {
+    const count = 118;
+    const values = new Float32Array(count * 3);
+    for (let item = 0; item < count; item += 1) {
+      const band = item % 4;
+      const angle = item / count * Math.PI * 8 + seed(item + index * 9, 24) * 0.18;
+      const latitude = (band - 1.5) * radius * 0.24 + (seed(item, 25) - 0.5) * radius * 0.1;
+      const ringRadius = Math.sqrt(Math.max(0.01, radius * radius * 0.72 - latitude * latitude));
+      values[item * 3] = Math.cos(angle) * ringRadius;
+      values[item * 3 + 1] = latitude;
+      values[item * 3 + 2] = Math.sin(angle) * ringRadius;
+    }
+    return values;
+  }, [index, radius]);
+
+  useFrame((state, delta) => {
+    if (!points.current) return;
+    points.current.rotation.y += delta * 0.055;
+    points.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.13 + index) * 0.12;
+  });
+
+  return (
+    <points ref={points} rotation={[0.08, 0, -0.12]}>
+      <bufferGeometry><bufferAttribute attach="attributes-position" args={[positions, 3]} /></bufferGeometry>
+      <pointsMaterial size={radius * 0.07} color={colors[1]} transparent opacity={dimmed ? 0.025 : 0.2} depthWrite={false} blending={THREE.AdditiveBlending} />
+    </points>
+  );
+}
+
+function PlanetCometTrail({ radius, colors, phase, dimmed }: { radius: number; colors: [string, string, string]; phase: number; dimmed: boolean }) {
+  const orbit = useRef<THREE.Group>(null);
+
+  useFrame((state, delta) => {
+    if (!orbit.current) return;
+    orbit.current.rotation.z += delta * 0.18;
+    orbit.current.rotation.x = 0.68 + Math.sin(state.clock.elapsedTime * 0.12 + phase) * 0.08;
+  });
+
+  return (
+    <group ref={orbit} rotation={[0.68, 0.24, phase]}>
+      <Trail
+        width={radius * 0.18}
+        length={compactTrailLength(radius)}
+        decay={1.35}
+        color={colors[1]}
+        attenuation={(value) => value * value}
+      >
+        <mesh position={[radius * 1.72, 0, 0]}>
+          <sphereGeometry args={[radius * 0.05, 12, 8]} />
+          <meshBasicMaterial color="#fff7ed" transparent opacity={dimmed ? 0.05 : 0.92} depthWrite={false} blending={THREE.AdditiveBlending} />
+        </mesh>
+      </Trail>
+    </group>
+  );
+}
+
+function compactTrailLength(radius: number) {
+  return Math.max(3, Math.round(5 + radius * 4));
+}
+
+function CometTrail({ radius, colors, phase, dimmed }: { radius: number; colors: [string, string, string]; phase: number; dimmed: boolean }) {
+  const group = useRef<THREE.Group>(null);
+  const curve = useMemo(() => {
+    const points = Array.from({ length: 13 }, (_, index) => {
+      const angle = -0.72 + index / 12 * Math.PI * 1.52;
+      return new THREE.Vector3(Math.cos(angle) * radius * 1.82, Math.sin(angle) * radius * 0.72, Math.sin(angle + phase) * radius * 0.35);
+    });
+    return new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.42);
+  }, [phase, radius]);
+  const head = useMemo(() => curve.getPoint(0.98), [curve]);
+
+  useFrame((state) => {
+    if (!group.current) return;
+    group.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.12 + phase) * 0.08;
+  });
+
+  return (
+    <group ref={group} rotation={[0.48, -0.2, phase * 0.22]}>
+      <mesh>
+        <tubeGeometry args={[curve, 72, radius * 0.012, 6, false]} />
+        <meshBasicMaterial color={colors[1]} transparent opacity={dimmed ? 0.03 : 0.34} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh position={head}>
+        <sphereGeometry args={[radius * 0.055, 14, 10]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={dimmed ? 0.06 : 0.92} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
+function InnerCover({ sources, radius, colors, dimmed, active, arrived, phase, onOpen }: { sources: string[]; radius: number; colors: [string, string, string]; dimmed: boolean; active: boolean; arrived: boolean; phase: number; onOpen?: () => void }) {
   const group = useRef<THREE.Group>(null);
   const { camera } = useThree();
-  const texture = useTexture(cover ?? "/universe-media/thumbs/001.jpg");
-
-  useEffect(() => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 2;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.repeat.x = -1;
-    texture.offset.x = 1;
-    texture.needsUpdate = true;
-  }, [texture]);
 
   useFrame(() => {
     if (!group.current) return;
@@ -276,12 +381,19 @@ function InnerCover({ cover, radius, colors, dimmed, active, arrived, onOpen }: 
 
   return (
     <group ref={group} position={[0.01, 0.01, radius * 0.48]}>
-      <RoundedBox args={[radius * 1.2, radius * 1.48, radius * 0.035]} radius={radius * 0.1} smoothness={3}>
-        <meshBasicMaterial color={colors[1]} transparent opacity={dimmed ? 0.02 : active ? 0.28 : 0.12} depthWrite={false} />
-      </RoundedBox>
-      <mesh position={[0, 0, radius * 0.026]} onClick={(event) => { if (!arrived || !onOpen) return; event.stopPropagation(); onOpen(); }}>
-        <planeGeometry args={[radius * 1.13, radius * 1.4]} />
-        <meshBasicMaterial map={texture} transparent opacity={dimmed ? 0.035 : active ? 0.68 : 0.34} side={THREE.FrontSide} depthWrite={false} />
+      <mesh scale={[1.28, 1.48, 1]}>
+        <circleGeometry args={[radius * 0.62, 64]} />
+        <meshBasicMaterial color={colors[0]} transparent opacity={dimmed ? 0.015 : active ? 0.16 : 0.07} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh position={[0, 0, radius * 0.026]} scale={[1, 1.18, 1]} onClick={(event) => { if (!arrived || !onOpen) return; event.stopPropagation(); onOpen(); }}>
+        <circleGeometry args={[radius * 0.56, 64]} />
+        <DynamicMemoryCoverMaterial
+          sources={sources}
+          tint={colors[0]}
+          opacity={dimmed ? 0.025 : active ? 0.62 : 0.28}
+          active={active}
+          phase={phase}
+        />
       </mesh>
     </group>
   );

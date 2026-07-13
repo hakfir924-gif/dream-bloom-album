@@ -1,9 +1,10 @@
 "use client";
 
-import { Billboard, RoundedBox, Text, useTexture } from "@react-three/drei";
+import { Billboard, Text, useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import * as THREE from "three";
+import { RoundedPlaneGeometry } from "maath/geometry";
 import type { ThreeEvent } from "@react-three/fiber";
 import type { MemoryCollection, MemoryTheme, UniverseMedia } from "@/components/three-memory-universe";
 import { getMemoryRecord, type MemoryRecord } from "@/data/memory-records";
@@ -13,6 +14,12 @@ const THEME_COLORS: Record<MemoryTheme, [string, string, string]> = {
   cyan: ["#8ee7ff", "#e3fbff", "#1f6271"],
   gold: ["#ffd18f", "#fff1c9", "#7a531e"],
   purple: ["#c4a2ff", "#f0e7ff", "#3f246e"],
+};
+
+type MemoryFlowLayout = "waterfall" | "ribbon";
+type PointerCaptureTarget = EventTarget & {
+  setPointerCapture?: (pointerId: number) => void;
+  releasePointerCapture?: (pointerId: number) => void;
 };
 
 function seed(index: number, salt: number) {
@@ -45,6 +52,18 @@ function memoryWaterfallPosition(index: number, total: number, flow: number, dev
   return target;
 }
 
+function memoryRibbonPosition(index: number, total: number, flow: number, deviceMode: "mobile" | "tablet" | "desktop", target: THREE.Vector3) {
+  const angle = index / Math.max(1, total) * Math.PI * 2 + flow * Math.PI * 2;
+  const radiusX = deviceMode === "mobile" ? 1.18 : deviceMode === "tablet" ? 1.72 : 2.12;
+  const radiusY = deviceMode === "mobile" ? 1.02 : deviceMode === "tablet" ? 1.34 : 1.58;
+  target.set(
+    Math.cos(angle) * radiusX,
+    Math.sin(angle) * radiusY,
+    0.38 + Math.sin(angle) * (deviceMode === "mobile" ? 0.34 : 0.52),
+  );
+  return target;
+}
+
 function isBackRiverSlot(index: number, deviceMode: "mobile" | "tablet" | "desktop") {
   return deviceMode === "mobile" ? index % 5 === 1 : deviceMode === "tablet" ? index % 5 === 2 : index % 5 === 2;
 }
@@ -54,12 +73,14 @@ export function MemoryOrbitRing({
   origin,
   compact,
   expanded,
+  layoutMode,
   onPreview,
 }: {
   memory: MemoryCollection;
   origin: [number, number, number];
   compact: boolean;
   expanded: boolean;
+  layoutMode?: MemoryFlowLayout;
   onPreview: (media: UniverseMedia, record?: MemoryRecord) => void;
 }) {
   const group = useRef<THREE.Group>(null);
@@ -68,8 +89,14 @@ export function MemoryOrbitRing({
   const flowProgress = useRef(0);
   const flowStartedAt = useRef(0);
   const colors = THEME_COLORS[memory.theme];
+  const flowLayout = layoutMode ?? "waterfall";
   const deviceMode: "mobile" | "tablet" | "desktop" = compact ? "mobile" : (typeof window !== "undefined" && window.innerWidth < 1200) ? "tablet" : "desktop";
-  const slotCount = Math.min(deviceMode === "mobile" ? 12 : deviceMode === "tablet" ? 18 : 30, memory.items.length);
+  const targetSlots = flowLayout === "ribbon"
+    ? deviceMode === "mobile" ? 9 : deviceMode === "tablet" ? 12 : 15
+    : deviceMode === "mobile" ? 12 : deviceMode === "tablet" ? 18 : 30;
+  const slotCount = memory.items.length === 0 ? 0 : memory.items.length >= 12
+    ? targetSlots
+    : Math.min(targetSlots, Math.max(memory.items.length, flowLayout === "ribbon" ? memory.items.length * 3 : memory.items.length * 2));
   const videoPosters = useMemo(
     () => memory.items.filter((item) => item.type === "image").map((item) => item.thumb ?? item.url),
     [memory.items],
@@ -95,7 +122,7 @@ export function MemoryOrbitRing({
     if (ready && release.current > 0.88) {
       if (flowStartedAt.current === 0) flowStartedAt.current = performance.now();
       const elapsed = performance.now() - flowStartedAt.current;
-      const cellDuration = compact ? 7200 : 6400;
+      const cellDuration = flowLayout === "ribbon" ? (compact ? 22000 : 26000) : compact ? 7200 : 6400;
       flowProgress.current = elapsed / cellDuration;
     }
     group.current.rotation.y = THREE.MathUtils.lerp(group.current.rotation.y, 0, 0.08);
@@ -105,7 +132,7 @@ export function MemoryOrbitRing({
 
   return (
     <group ref={group} position={origin}>
-      <MemoryBandDust colors={colors} deviceMode={deviceMode} progressRef={release} />
+      <MemoryBandDust colors={colors} deviceMode={deviceMode} layoutMode={flowLayout} progressRef={release} />
       {Array.from({ length: slotCount }, (_, index) => {
         const media = memory.items[index % memory.items.length];
         const posterSource = videoPosters.length > 0 ? videoPosters[(index * 7 + 3) % videoPosters.length] : memory.cover ?? "/universe-media/thumbs/001.jpg";
@@ -117,6 +144,7 @@ export function MemoryOrbitRing({
             total={slotCount}
             compact={compact}
             deviceMode={deviceMode}
+            layoutMode={flowLayout}
             colors={colors}
             posterSource={posterSource}
             progressRef={release}
@@ -136,6 +164,7 @@ function OrbitMemoryFragment({
   total,
   compact,
   deviceMode,
+  layoutMode,
   colors,
   posterSource,
   progressRef,
@@ -148,6 +177,7 @@ function OrbitMemoryFragment({
   total: number;
   compact: boolean;
   deviceMode: "mobile" | "tablet" | "desktop";
+  layoutMode: MemoryFlowLayout;
   colors: [string, string, string];
   posterSource: string;
   progressRef: MutableRefObject<number>;
@@ -158,11 +188,12 @@ function OrbitMemoryFragment({
   const group = useRef<THREE.Group>(null);
   const glowMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const imageMaterial = useRef<THREE.MeshBasicMaterial>(null);
-  const frameMaterial = useRef<THREE.MeshBasicMaterial>(null);
   const isVideo = media.type === "video";
   const isText = media.type === "text";
   const width = deviceMode === "mobile" ? 0.58 : deviceMode === "tablet" ? 0.65 : 0.72;
   const height = deviceMode === "mobile" ? 0.78 : deviceMode === "tablet" ? 0.88 : 1.08;
+  const cardGeometry = useMemo(() => new RoundedPlaneGeometry(width, height, Math.min(width, height) * 0.085, 10), [height, width]);
+  const frameGeometry = useMemo(() => new RoundedPlaneGeometry(width + 0.026, height + 0.026, Math.min(width, height) * 0.09, 10), [height, width]);
   const layout = useMemo(() => {
     const lane = isBackRiverSlot(index, deviceMode) ? 1 : 0;
     return {
@@ -178,6 +209,8 @@ function OrbitMemoryFragment({
   const orbitPosition = useRef(new THREE.Vector3());
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
+  const pointerOrigin = useRef<[number, number] | null>(null);
+  const pointerMoved = useRef(false);
 
   useEffect(() => {
     targetQuaternion.current.copy(layout.baseQuaternion);
@@ -191,16 +224,19 @@ function OrbitMemoryFragment({
     const row = Math.floor(index / columns);
     const column = index % columns;
     const travel = (row + flowProgressRef.current + column * 0.17) % rows;
-    const streamOpacity = THREE.MathUtils.smoothstep(travel, 0, 0.24) * (1 - THREE.MathUtils.smoothstep(travel, rows - 0.42, rows - 0.04));
+    const streamOpacity = layoutMode === "ribbon"
+      ? 1
+      : THREE.MathUtils.smoothstep(travel, 0, 0.24) * (1 - THREE.MathUtils.smoothstep(travel, rows - 0.42, rows - 0.04));
     const local = releaseProgress * streamOpacity;
     const float = Math.sin(state.clock.elapsedTime * 0.56 + index) * 0.02 * local;
-    memoryWaterfallPosition(index, total, flowProgressRef.current, deviceMode, layout.lane, orbitPosition.current);
+    if (layoutMode === "ribbon") memoryRibbonPosition(index, total, flowProgressRef.current, deviceMode, orbitPosition.current);
+    else memoryWaterfallPosition(index, total, flowProgressRef.current, deviceMode, layout.lane, orbitPosition.current);
     group.current.position.copy(orbitPosition.current).multiplyScalar(releaseProgress);
     group.current.position.y += float;
     group.current.position.z += Math.cos(state.clock.elapsedTime * 0.32 + index * 0.5) * 0.014 * local;
 
     group.current.getWorldPosition(worldPosition.current);
-    lookMatrix.current.lookAt(worldPosition.current, state.camera.position, state.camera.up);
+    lookMatrix.current.lookAt(state.camera.position, worldPosition.current, state.camera.up);
     cameraQuaternion.current.setFromRotationMatrix(lookMatrix.current);
     if (group.current.parent) {
       group.current.parent.getWorldQuaternion(parentQuaternion.current).invert();
@@ -209,14 +245,13 @@ function OrbitMemoryFragment({
     targetQuaternion.current.copy(cameraQuaternion.current);
     targetQuaternion.current.slerp(layout.baseQuaternion, 0.08);
     group.current.quaternion.slerp(targetQuaternion.current, 0.14);
-    const layerScale = layout.lane === 0 ? 1 : 0.78;
+    const layerScale = layoutMode === "ribbon" ? 0.92 + (index % 3) * 0.035 : layout.lane === 0 ? 1 : 0.78;
     group.current.scale.setScalar((0.08 + local * 0.92) * layerScale * (1 + Math.sin(state.clock.elapsedTime * 0.66 + index) * 0.012));
     group.current.visible = local > 0.01;
 
-    const layerOpacity = layout.lane === 0 ? 1 : 0.64;
+    const layerOpacity = layoutMode === "ribbon" ? 0.94 : layout.lane === 0 ? 1 : 0.64;
     if (glowMaterial.current) glowMaterial.current.opacity = (0.1 + Math.sin(state.clock.elapsedTime * 1.1 + index) * 0.025) * local * layerOpacity;
     if (imageMaterial.current) imageMaterial.current.opacity = local * 0.96 * layerOpacity;
-    if (frameMaterial.current) frameMaterial.current.opacity = (isVideo ? 0.26 : isText ? 0.22 : 0.08) * local * layerOpacity;
   });
 
   const clearLongPress = () => {
@@ -228,7 +263,10 @@ function OrbitMemoryFragment({
 
   const startLongPress = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    (event.target as PointerCaptureTarget | null)?.setPointerCapture?.(event.pointerId);
     longPressTriggered.current = false;
+    pointerMoved.current = false;
+    pointerOrigin.current = [event.nativeEvent.clientX, event.nativeEvent.clientY];
     clearLongPress();
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
@@ -236,35 +274,54 @@ function OrbitMemoryFragment({
     }, 520);
   };
 
-  const handleClick = (event: ThreeEvent<MouseEvent>) => {
+  const trackPointer = (event: ThreeEvent<PointerEvent>) => {
+    if (!pointerOrigin.current || pointerMoved.current) return;
+    const distance = Math.hypot(
+      event.nativeEvent.clientX - pointerOrigin.current[0],
+      event.nativeEvent.clientY - pointerOrigin.current[1],
+    );
+    if (distance > 8) {
+      pointerMoved.current = true;
+      clearLongPress();
+    }
+  };
+
+  const cancelPointer = () => {
+    clearLongPress();
+    pointerOrigin.current = null;
+  };
+
+  const finishPointer = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     clearLongPress();
-    if (longPressTriggered.current) {
-      longPressTriggered.current = false;
-      return;
-    }
-    onPreview(media, record);
+    (event.target as PointerCaptureTarget | null)?.releasePointerCapture?.(event.pointerId);
+    const shouldOpen = !longPressTriggered.current && !pointerMoved.current;
+    pointerOrigin.current = null;
+    longPressTriggered.current = false;
+    pointerMoved.current = false;
+    if (shouldOpen) onPreview(media, record);
   };
 
   useEffect(() => clearLongPress, []);
+  useEffect(() => () => {
+    cardGeometry.dispose();
+    frameGeometry.dispose();
+  }, [cardGeometry, frameGeometry]);
 
   return (
     <group ref={group}>
       <group>
-        <mesh position={[0, 0, -0.035]}>
-          <planeGeometry args={[width * 1.08, height * 1.06]} />
+        <mesh position={[0, 0, -0.026]} scale={1.07}>
+          <primitive object={frameGeometry} attach="geometry" />
           <meshBasicMaterial ref={glowMaterial} color={isVideo ? colors[1] : colors[0]} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
         </mesh>
-        <RoundedBox args={[width + 0.036, height + 0.036, 0.014]} radius={0.035} smoothness={3}>
-          <meshBasicMaterial color="#fff4fc" transparent opacity={0.14} depthWrite={false} />
-        </RoundedBox>
-        <mesh position={[0, 0, 0.012]}>
-          <planeGeometry args={[width, height]} />
-          {isVideo ? <VideoPosterSurface source={media.url} fallback={media.thumb ?? posterSource} materialRef={imageMaterial} compact={compact} /> : isText ? <TextMemorySurface text={media.text ?? ""} colors={colors} compact={compact} /> : <ImageSurface source={media.thumb ?? media.url} materialRef={imageMaterial} compact={compact} />}
+        <mesh position={[0, 0, -0.006]}>
+          <primitive object={frameGeometry} attach="geometry" />
+          <meshBasicMaterial color="#fff4fc" transparent opacity={0.16} depthWrite={false} />
         </mesh>
-        <mesh position={[0, 0, 0.016]}>
-          <ringGeometry args={[Math.min(width, height) * 0.48, Math.min(width, height) * 0.495, 48]} />
-          <meshBasicMaterial ref={frameMaterial} color={colors[1]} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+        <mesh position={[0, 0, 0.012]}>
+          <primitive object={cardGeometry} attach="geometry" />
+          {isVideo ? <VideoPosterSurface source={media.url} fallback={media.thumb ?? posterSource} materialRef={imageMaterial} compact={compact} /> : isText ? <TextMemorySurface text={media.text ?? ""} colors={colors} compact={compact} /> : <ImageSurface source={media.thumb ?? media.url} materialRef={imageMaterial} compact={compact} />}
         </mesh>
         {isVideo ? (
           <group position={[0, 0, 0.034]}>
@@ -272,8 +329,8 @@ function OrbitMemoryFragment({
             <mesh rotation={[0, 0, -Math.PI / 2]} position={[0.012, 0, 0.006]}><coneGeometry args={[0.04, 0.07, 3]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.9} depthWrite={false} /></mesh>
           </group>
         ) : null}
-        <mesh position={[0, 0, 0.06]} onPointerDown={startLongPress} onPointerUp={clearLongPress} onPointerLeave={clearLongPress} onPointerCancel={clearLongPress} onClick={handleClick}>
-          <planeGeometry args={[width, height]} />
+        <mesh position={[0, 0, 0.06]} onPointerDown={startLongPress} onPointerMove={trackPointer} onPointerUp={finishPointer} onPointerLeave={cancelPointer} onPointerCancel={cancelPointer}>
+          <primitive object={cardGeometry} attach="geometry" />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide} />
         </mesh>
       </group>
@@ -297,13 +354,14 @@ function ImageSurface({ source, materialRef, compact }: { source: string; materi
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = compact ? 4 : 8;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.repeat.x = -1;
-    texture.offset.x = 1;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.set(1, 1);
+    texture.offset.set(0, 0);
     texture.needsUpdate = true;
   }, [compact, texture]);
 
-  return <meshBasicMaterial ref={materialRef} map={texture} transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} />;
+  return <meshBasicMaterial ref={materialRef} map={texture} transparent opacity={0} side={THREE.FrontSide} depthWrite={false} />;
 }
 
 type PosterTask = {
@@ -363,9 +421,10 @@ function processPosterQueue() {
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.minFilter = THREE.LinearFilter;
       texture.magFilter = THREE.LinearFilter;
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.repeat.x = -1;
-      texture.offset.x = 1;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.repeat.set(1, 1);
+      texture.offset.set(0, 0);
       task.resolve(texture);
       finish();
     };
@@ -399,9 +458,10 @@ function VideoPosterSurface({
   useEffect(() => {
     fallbackTexture.colorSpace = THREE.SRGBColorSpace;
     fallbackTexture.anisotropy = compact ? 4 : 8;
-    fallbackTexture.wrapS = THREE.RepeatWrapping;
-    fallbackTexture.repeat.x = -1;
-    fallbackTexture.offset.x = 1;
+    fallbackTexture.wrapS = THREE.ClampToEdgeWrapping;
+    fallbackTexture.wrapT = THREE.ClampToEdgeWrapping;
+    fallbackTexture.repeat.set(1, 1);
+    fallbackTexture.offset.set(0, 0);
     fallbackTexture.needsUpdate = true;
   }, [compact, fallbackTexture]);
 
@@ -418,29 +478,37 @@ function VideoPosterSurface({
     };
   }, [source]);
 
-  return <meshBasicMaterial ref={materialRef} map={texture} transparent opacity={0} side={THREE.DoubleSide} depthWrite={false} />;
+  return <meshBasicMaterial ref={materialRef} map={texture} transparent opacity={0} side={THREE.FrontSide} depthWrite={false} />;
 }
 
-function MemoryBandDust({ colors, deviceMode, progressRef }: { colors: [string, string, string]; deviceMode: "mobile" | "tablet" | "desktop"; progressRef: MutableRefObject<number> }) {
+function MemoryBandDust({ colors, deviceMode, layoutMode, progressRef }: { colors: [string, string, string]; deviceMode: "mobile" | "tablet" | "desktop"; layoutMode: MemoryFlowLayout; progressRef: MutableRefObject<number> }) {
   const points = useRef<THREE.Points>(null);
   const count = deviceMode === "mobile" ? 80 : deviceMode === "tablet" ? 160 : 240;
   const wallSlots = deviceMode === "mobile" ? 12 : deviceMode === "tablet" ? 20 : 30;
   const positions = useMemo(() => {
     const data = new Float32Array(count * 3);
     for (let index = 0; index < count; index += 1) {
-      const lane = index % 2;
-      const jitter = (seed(index, 24) - 0.5) * (deviceMode === "mobile" ? 0.08 : deviceMode === "tablet" ? 0.14 : 0.18);
-      const position = memoryWaterfallPosition(index % wallSlots, wallSlots, 0, deviceMode, lane, new THREE.Vector3());
-      data[index * 3] = position.x + jitter;
-      data[index * 3 + 1] = position.y + (seed(index, 25) - 0.5) * 0.13;
-      data[index * 3 + 2] = position.z + (seed(index, 26) - 0.5) * 0.12;
+      if (layoutMode === "ribbon") {
+        const angle = index / count * Math.PI * 2;
+        const radius = deviceMode === "mobile" ? 1.2 : deviceMode === "tablet" ? 1.75 : 2.14;
+        data[index * 3] = Math.cos(angle) * radius + (seed(index, 24) - 0.5) * 0.18;
+        data[index * 3 + 1] = Math.sin(angle) * radius * 0.72 + (seed(index, 25) - 0.5) * 0.16;
+        data[index * 3 + 2] = 0.25 + Math.sin(angle) * 0.42 + (seed(index, 26) - 0.5) * 0.16;
+      } else {
+        const lane = index % 2;
+        const jitter = (seed(index, 24) - 0.5) * (deviceMode === "mobile" ? 0.08 : deviceMode === "tablet" ? 0.14 : 0.18);
+        const position = memoryWaterfallPosition(index % wallSlots, wallSlots, 0, deviceMode, lane, new THREE.Vector3());
+        data[index * 3] = position.x + jitter;
+        data[index * 3 + 1] = position.y + (seed(index, 25) - 0.5) * 0.13;
+        data[index * 3 + 2] = position.z + (seed(index, 26) - 0.5) * 0.12;
+      }
     }
     return data;
-  }, [deviceMode, count, wallSlots]);
+  }, [deviceMode, count, layoutMode, wallSlots]);
 
   useFrame((state) => {
     if (!points.current) return;
-    points.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.08) * 0.012;
+    points.current.rotation.z = layoutMode === "ribbon" ? state.clock.elapsedTime * 0.014 : Math.sin(state.clock.elapsedTime * 0.08) * 0.012;
     (points.current.material as THREE.PointsMaterial).opacity = 0.06 + progressRef.current * 0.3;
   });
 

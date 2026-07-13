@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Images, Play, Sparkles, X } from "lucide-react";
+import { ArrowRight, Images, Play, Sparkles, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ThreeMemoryUniverse, type MemoryCollection, type SmallMemoryPlanet, type UniverseMedia } from "@/components/three-memory-universe";
@@ -57,8 +57,9 @@ export function DreamAlbum() {
 
   return (
     <main className="universe-vignette relative h-[100svh] w-screen overflow-hidden text-white">
-      <FloatingAtmosphere floaters={floaters} dimmed={exploring} />
       <ThreeMemoryUniverse exploring={exploring} onPreview={(media, record) => setPreview({ media, record: record ?? getMemoryRecord(media, "记忆星球") })} onOpenCollection={setCollection} />
+      <CinematicSkyBackdrop exploring={exploring} />
+      <FloatingAtmosphere floaters={floaters} dimmed={exploring} />
 
       <AnimatePresence>
         {!exploring ? (
@@ -82,9 +83,55 @@ export function DreamAlbum() {
   );
 }
 
+function CinematicSkyBackdrop({ exploring }: { exploring: boolean }) {
+  return (
+    <motion.div
+      className="cinematic-sky-layer pointer-events-none absolute inset-0 z-[5] overflow-hidden"
+      initial={false}
+      animate={exploring
+        ? { opacity: [1, 0.96, 0.34, 0], scale: [1, 1.08, 1.26, 1.4], filter: ["blur(0px) saturate(108%)", "blur(2px) saturate(118%)", "blur(9px) saturate(126%)", "blur(16px) saturate(118%)"] }
+        : { opacity: 1, scale: 1, filter: "blur(0px) saturate(108%)" }}
+      transition={{ duration: exploring ? 2.8 : 1.2, times: exploring ? [0, 0.34, 0.76, 1] : undefined, ease: [0.2, 0.72, 0.24, 1] }}
+    >
+      <motion.div
+        className="cinematic-sky-image absolute inset-[-3%]"
+        animate={{ scale: [1.01, 1.045, 1.01], x: ["-0.6%", "0.6%", "-0.6%"], y: ["0%", "-0.7%", "0%"] }}
+        transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="cinematic-cloud-glow absolute inset-0"
+        animate={{ opacity: [0.44, 0.72, 0.44], scale: [1, 1.05, 1] }}
+        transition={{ duration: 8.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="cinematic-sky-shade absolute inset-0" />
+      {[
+        { top: "7%", right: "-2%", delay: 0.8, duration: 1.55, repeatDelay: 7.2 },
+        { top: "24%", right: "6%", delay: 4.2, duration: 1.3, repeatDelay: 8.6 },
+      ].map((meteor, index) => (
+        <motion.div
+          key={index}
+          className="absolute"
+          style={{ top: meteor.top, right: meteor.right }}
+          animate={{ x: ["0vw", "-72vw"], y: ["0vh", "42vh"], opacity: [0, 1, 0], scale: [0.78, 1, 0.9] }}
+          transition={{ duration: meteor.duration, times: [0, 0.16, 1], delay: meteor.delay, repeat: Infinity, repeatDelay: meteor.repeatDelay, ease: [0.2, 0.7, 0.24, 1] }}
+        >
+          <span className="cinematic-meteor" />
+        </motion.div>
+      ))}
+      <div className="cinematic-horizon-bloom absolute inset-x-0 bottom-0 h-[32%]" />
+      <motion.div
+        className="absolute bottom-[-14vh] left-1/2 h-[42vh] w-[72vw] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,244,214,0.92)_0%,rgba(255,170,170,0.46)_28%,rgba(104,170,255,0.12)_58%,transparent_74%)] blur-xl"
+        initial={false}
+        animate={exploring ? { opacity: [0, 0.88, 0.42, 0], scale: [0.55, 1.08, 1.72, 2.3], y: [0, -28, -82, -138] } : { opacity: 0, scale: 0.55, y: 0 }}
+        transition={{ duration: 2.65, times: [0, 0.32, 0.7, 1], ease: [0.18, 0.72, 0.22, 1] }}
+      />
+    </motion.div>
+  );
+}
+
 function FloatingAtmosphere({ floaters, dimmed }: { floaters: Array<{ id: number; left: string; delay: number; duration: number; size: number; type: number }>; dimmed: boolean }) {
   return (
-    <div className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${dimmed ? "opacity-24" : "opacity-68"}`}>
+    <div className={`pointer-events-none absolute inset-0 z-[8] transition-opacity duration-1000 ${dimmed ? "opacity-24" : "opacity-58"}`}>
       {floaters.map((item) => (
         <motion.span
           key={item.id}
@@ -117,51 +164,56 @@ function FloatingAtmosphere({ floaters, dimmed }: { floaters: Array<{ id: number
 }
 
 function IntroHero({ onStart }: { onStart: () => void }) {
+  const [launching, setLaunching] = useState(false);
+
+  const launch = () => {
+    if (launching) return;
+    setLaunching(true);
+    window.setTimeout(onStart, 620);
+  };
+
   return (
     <motion.section
-      className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 text-center"
+      className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6 pb-[4vh] text-center"
       initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.08, filter: "blur(10px)" }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
+      animate={launching ? { opacity: 0.9, scale: 1.025 } : { opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.12, filter: "blur(12px)" }}
+      transition={{ duration: 0.9, ease: [0.2, 0.72, 0.24, 1] }}
     >
       <motion.div
-        className="mb-6 text-5xl text-pink-200 drop-shadow-[0_0_28px_rgba(255,128,200,0.95)]"
-        animate={{ scale: [1, 1.12, 1], opacity: [0.88, 1, 0.88] }}
-        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        className="mb-5 text-2xl text-white drop-shadow-[0_0_18px_rgba(141,215,255,0.95)]"
+        animate={{ scale: launching ? [1, 1.8, 0.4] : [1, 1.14, 1], opacity: launching ? [1, 1, 0] : [0.72, 1, 0.72] }}
+        transition={{ duration: launching ? 0.7 : 3.4, repeat: launching ? 0 : Infinity, ease: "easeInOut" }}
       >
         {COPY.heart}
       </motion.div>
       <div className="relative">
-        {/* Glow behind title */}
         <motion.div
-          className="absolute inset-0 -z-10 blur-2xl"
-          animate={{ opacity: [0.4, 0.7, 0.4] }}
+          className="absolute inset-0 -z-10 blur-3xl"
+          animate={{ opacity: [0.3, 0.62, 0.3], scale: [0.94, 1.06, 0.94] }}
           transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
         >
-          <span className="bg-gradient-to-r from-pink-500/30 via-purple-400/40 to-cyan-400/30 bg-clip-text text-5xl font-semibold tracking-[0.16em] text-transparent sm:text-7xl">
+          <span className="text-5xl font-semibold tracking-[0.18em] text-cyan-100/60 sm:text-7xl">
             {COPY.brand}
           </span>
         </motion.div>
-        {/* Main title with gradient */}
         <motion.h1
-          className="bg-gradient-to-b from-white via-pink-100 to-purple-200 bg-clip-text text-5xl font-semibold tracking-[0.16em] text-transparent drop-shadow-[0_0_36px_rgba(255,151,224,0.35)] sm:text-7xl"
+          className="cinematic-title text-5xl font-semibold tracking-[0.18em] text-white sm:text-7xl"
           initial={{ y: 18, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.8 }}
         >
           {COPY.brand}
         </motion.h1>
-        {/* Sparkle decorations */}
         <motion.span
-          className="pointer-events-none absolute -right-6 -top-2 text-pink-300/60 sm:-right-8 sm:-top-3"
+          className="pointer-events-none absolute -right-6 -top-2 text-amber-100/80 sm:-right-8 sm:-top-3"
           animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.3, 0.8, 0.3] }}
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
         >
           <Sparkles size={16} />
         </motion.span>
         <motion.span
-          className="pointer-events-none absolute -left-5 bottom-0 text-cyan-300/40 sm:-left-7"
+          className="pointer-events-none absolute -left-5 bottom-0 text-cyan-100/70 sm:-left-7"
           animate={{ scale: [1, 0.7, 1], opacity: [0.5, 0.2, 0.5] }}
           transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
         >
@@ -169,7 +221,7 @@ function IntroHero({ onStart }: { onStart: () => void }) {
         </motion.span>
       </div>
       <motion.p
-        className="mt-4 text-xs font-medium uppercase tracking-[0.32em] text-pink-50/76 sm:text-sm"
+        className="cinematic-subtitle mt-4 text-[11px] font-medium uppercase tracking-[0.34em] text-white/84 sm:text-xs"
         initial={{ y: 16, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.24, duration: 0.8 }}
@@ -178,14 +230,17 @@ function IntroHero({ onStart }: { onStart: () => void }) {
       </motion.p>
       <motion.button
         type="button"
-        onClick={onStart}
-        className="mt-10 inline-flex h-13 items-center gap-2 rounded-full border border-pink-100/30 bg-white/12 px-7 text-sm font-medium tracking-[0.12em] text-pink-50 shadow-[0_0_42px_rgba(255,113,200,0.26)] backdrop-blur-xl transition hover:bg-white/18 active:scale-95"
+        onClick={launch}
+        disabled={launching}
+        className="group mt-10 flex flex-col items-center gap-3 text-[11px] font-medium tracking-[0.22em] text-white/90 disabled:pointer-events-none"
         initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        animate={launching ? { y: -12, opacity: 0 } : { y: 0, opacity: 1 }}
         transition={{ delay: 0.38, duration: 0.8 }}
       >
-        <Sparkles size={17} />
-        {COPY.start}
+        <span className="cinematic-start-orb relative grid h-16 w-16 place-items-center rounded-full border border-white/55 bg-white/12 text-white shadow-[0_0_42px_rgba(125,211,252,0.5)] backdrop-blur-md transition duration-500 group-hover:scale-105 group-hover:bg-white/20 group-active:scale-95">
+          <ArrowRight size={19} strokeWidth={1.6} />
+        </span>
+        <span>{COPY.start}</span>
       </motion.button>
     </motion.section>
   );

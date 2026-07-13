@@ -109,6 +109,112 @@ canvas {
   opacity: 0.4;
 }
 
+.cinematic-sky-layer {
+  transform-origin: 50% 66%;
+  will-change: opacity, filter, transform;
+}
+
+.cinematic-sky-image {
+  background-image: url("/cinematic/twilight-sky-desktop.webp");
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  will-change: transform;
+}
+
+.cinematic-cloud-glow {
+  background:
+    radial-gradient(ellipse at 50% 74%, rgba(255, 202, 145, 0.34), transparent 35%),
+    radial-gradient(ellipse at 18% 58%, rgba(255, 169, 192, 0.2), transparent 31%),
+    radial-gradient(ellipse at 82% 48%, rgba(114, 204, 255, 0.18), transparent 34%);
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+}
+
+.cinematic-sky-shade {
+  background:
+    linear-gradient(180deg, rgba(3, 18, 52, 0.14) 0%, transparent 34%, rgba(8, 25, 58, 0.05) 70%, rgba(4, 10, 25, 0.4) 100%),
+    radial-gradient(ellipse at center, transparent 34%, rgba(2, 10, 32, 0.22) 100%);
+}
+
+.cinematic-horizon-bloom {
+  background: linear-gradient(180deg, transparent, rgba(255, 173, 150, 0.13) 42%, rgba(7, 17, 41, 0.32));
+  mix-blend-mode: screen;
+}
+
+.cinematic-meteor {
+  position: relative;
+  display: block;
+  width: clamp(92px, 14vw, 176px);
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(146, 216, 255, 0.08) 18%, rgba(180, 228, 255, 0.55) 76%, rgba(255, 255, 255, 0.96));
+  box-shadow: 0 0 6px rgba(166, 225, 255, 0.82), 0 0 14px rgba(255, 202, 229, 0.28);
+  transform: rotate(-31deg);
+  transform-origin: right center;
+}
+
+.cinematic-meteor::after {
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  content: "";
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px #fff, 0 0 12px rgba(135, 220, 255, 0.85);
+  transform: translateY(-50%);
+}
+
+.cinematic-title {
+  text-shadow: 0 2px 18px rgba(7, 35, 75, 0.5), 0 0 42px rgba(177, 225, 255, 0.34);
+}
+
+.cinematic-subtitle {
+  text-shadow: 0 2px 14px rgba(3, 21, 54, 0.72);
+}
+
+.cinematic-start-orb::before,
+.cinematic-start-orb::after {
+  position: absolute;
+  inset: -7px;
+  content: "";
+  border: 1px solid rgba(225, 245, 255, 0.36);
+  border-radius: 50%;
+  animation: cinematic-orbit-pulse 3.2s ease-in-out infinite;
+}
+
+.cinematic-start-orb::after {
+  inset: -15px;
+  border-color: rgba(255, 209, 178, 0.2);
+  animation-delay: -1.6s;
+}
+
+@keyframes cinematic-orbit-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.82;
+    transform: scale(1.05);
+  }
+}
+
+@media (max-width: 767px) {
+  .cinematic-sky-image {
+    background-image: url("/cinematic/twilight-sky-mobile.webp");
+    background-position: center center;
+  }
+
+  .cinematic-meteor {
+    width: 92px;
+  }
+}
+
 .memory-gallery::before {
   position: absolute;
   inset: 0;
